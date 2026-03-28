@@ -7,7 +7,7 @@ A complete, self-contained GST Billing Application for **NIBRITY ENTERPRISE** th
 - ✅ Automated GST calculation (CGST+SGST for intra-state, IGST for inter-state)
 - ✅ Multi-rate HSN support (0%, 5%, 12%, 18%, 28%)
 - ✅ Auto-sequencing invoice numbering (NE/001/25-26 format)
-- ✅ Tax Invoice PDF (3 copies) + Delivery Challan PDF (4 copies) + Combined 7-page PDF
+- ✅ Tax Invoice PDF (3 copies) + Delivery Challan PDF (4 copies) + Combined 7-page PDF (via xhtml2pdf — pure Python, no native deps)
 - ✅ HSN-wise tax breakup table
 - ✅ Amount in words (Indian numbering system)
 - ✅ Customer/Party management with ledger
