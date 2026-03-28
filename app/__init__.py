@@ -1,15 +1,26 @@
 """
 Flask Application Factory
 """
+import os
+import sys
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from config import Config
+from config import Config, BUNDLE_DIR
 
 db = SQLAlchemy()
 
 
 def create_app(config_class=Config):
-    app = Flask(__name__)
+    # When running as a frozen PyInstaller exe, Flask cannot locate templates/static
+    # via __file__ (which points inside the bundle).  Pass explicit paths instead.
+    if getattr(sys, 'frozen', False):
+        template_folder = os.path.join(BUNDLE_DIR, 'app', 'templates')
+        static_folder = os.path.join(BUNDLE_DIR, 'app', 'static')
+        app = Flask(__name__,
+                    template_folder=template_folder,
+                    static_folder=static_folder)
+    else:
+        app = Flask(__name__)
     app.config.from_object(config_class)
 
     db.init_app(app)

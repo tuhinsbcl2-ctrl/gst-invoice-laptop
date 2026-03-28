@@ -6,3 +6,6 @@ num2words==0.5.13
 openpyxl==3.1.2
 Pillow==12.1.1
 lxml==5.2.2
+
+# Build dependency — only needed on the machine that creates the .exe
+pyinstaller>=6.0
