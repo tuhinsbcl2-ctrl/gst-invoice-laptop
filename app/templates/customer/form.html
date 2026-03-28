@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Edit' if edit_mode else 'Add' }} Customer{% endblock %}
+{% block content %}
+<div class="row mb-3 align-items-center">
+    <div class="col"><h4><i class="bi bi-person me-2"></i>{{ 'Edit' if edit_mode else 'Add' }} Customer</h4></div>
+    <div class="col-auto">
+        <a href="{{ url_for('customer.list_customers') }}" class="btn btn-outline-secondary btn-sm">Back</a>
+    </div>
+</div>
+<div class="card" style="max-width:700px;">
+    <div class="card-body">
+        <form method="POST">
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="form-label fw-bold">Name <span class="text-danger">*</span></label>
+                    <input type="text" name="name" class="form-control" required
+                           value="{{ customer.name if edit_mode else '' }}">
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-bold">Address</label>
+                    <textarea name="address" class="form-control" rows="3">{{ customer.address if edit_mode else '' }}</textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">GSTIN</label>
+                    <input type="text" name="gstin" class="form-control"
+                           value="{{ customer.gstin if edit_mode else '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">PAN</label>
+                    <input type="text" name="pan" class="form-control"
+                           value="{{ customer.pan if edit_mode else '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">State</label>
+                    <select name="state_code" class="form-select" id="stateCode" onchange="fillStateName(this)">
+                        <option value="">-- Select State --</option>
+                        {% for code, name in states %}
+                        <option value="{{ code }}" data-name="{{ name }}"
+                            {% if edit_mode and customer.state_code == code %}selected{% endif %}>
+                            {{ code }} – {{ name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <input type="hidden" name="state_name" id="stateName"
+                           value="{{ customer.state_name if edit_mode else '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">State Name (auto-filled)</label>
+                    <input type="text" class="form-control bg-warning-subtle" readonly
+                           id="stateNameDisplay" value="{{ customer.state_name if edit_mode else '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Phone</label>
+                    <input type="text" name="phone" class="form-control"
+                           value="{{ customer.phone if edit_mode else '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Email</label>
+                    <input type="email" name="email" class="form-control"
+                           value="{{ customer.email if edit_mode else '' }}">
+                </div>
+                <div class="col-12 text-end">
+                    <a href="{{ url_for('customer.list_customers') }}" class="btn btn-secondary me-2">Cancel</a>
+                    <button type="submit" class="btn btn-primary">
+                        {{ 'Update' if edit_mode else 'Save' }} Customer
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+function fillStateName(sel) {
+    const opt = sel.options[sel.selectedIndex];
+    const name = opt.dataset.name || '';
+    document.getElementById('stateName').value = name;
+    document.getElementById('stateNameDisplay').value = name;
+}
+</script>
+{% endblock %}

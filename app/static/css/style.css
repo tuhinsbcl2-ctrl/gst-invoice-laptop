@@ -1,0 +1,54 @@
+/* NIBRITY ENTERPRISE – GST Billing App Styles */
+
+/* Color coding system */
+.input-editable {
+    border-left: 3px solid #198754 !important; /* Green = user editable */
+    background-color: #f0fff4 !important;
+}
+
+.bg-warning-subtle, input[readonly]:not(.input-editable) {
+    border-left: 3px solid #ffc107 !important; /* Yellow = auto-calculated */
+}
+
+.input-selector {
+    border-left: 3px solid #0d6efd !important; /* Blue = selector */
+    background-color: #f0f4ff !important;
+}
+
+/* Navbar */
+.navbar-brand {
+    font-size: 1.1rem;
+    letter-spacing: 0.02em;
+}
+
+/* Footer */
+.footer {
+    background-color: #f8f9fa;
+}
+
+/* Card headers */
+.card-header.bg-primary { background-color: #0d6efd !important; }
+.card-header.bg-success { background-color: #198754 !important; }
+.card-header.bg-info    { background-color: #0dcaf0 !important; color: #000 !important; }
+
+/* Table small helper */
+.btn-xs { font-size: 0.75rem; }
+
+/* Invoice preview */
+#invoicePreview {
+    background: white;
+    font-size: 0.92rem;
+}
+
+/* Compact form elements in item table */
+#itemsTable input, #itemsTable select {
+    font-size: 0.8rem;
+    padding: 2px 4px;
+    min-height: 28px;
+}
+
+/* Print helper */
+@media print {
+    .navbar, .footer, .alert, .btn, .card-header .btn { display: none !important; }
+    .card { border: none !important; box-shadow: none !important; }
+}

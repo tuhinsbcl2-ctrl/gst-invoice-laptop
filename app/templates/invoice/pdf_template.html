@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page { size: A4; margin: 12mm 10mm; }
+  body { font-family: Arial, sans-serif; font-size: 9pt; color: #000; }
+  .page { page-break-after: always; border: 1px solid #000; padding: 8px; position: relative; min-height: 270mm; }
+  .page:last-child { page-break-after: avoid; }
+  .copy-label { position: absolute; top: 6px; right: 8px; font-size: 8pt; font-weight: bold; color: #555; border: 1px solid #999; padding: 2px 6px; }
+  .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 4px; }
+  .header h2 { margin: 0; font-size: 14pt; }
+  .header h3 { margin: 0; font-size: 11pt; }
+  .header p { margin: 1px 0; font-size: 8pt; }
+  .doc-title { text-align: center; font-weight: bold; font-size: 11pt; border-bottom: 1px solid #000; padding-bottom: 2px; margin-bottom: 4px; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid #000; padding: 2px 4px; }
+  th { background: #e8e8e8; font-size: 8pt; }
+  td { font-size: 8pt; }
+  .no-border td { border: none; }
+  .totals-table td { border: none; font-size: 8.5pt; }
+  .grand-total { font-weight: bold; font-size: 10pt; }
+  .footer-section { margin-top: 6px; border-top: 1px solid #000; padding-top: 4px; }
+  .sign-block { text-align: right; padding-top: 30px; }
+  .declaration { font-size: 7.5pt; font-style: italic; }
+  .jurisdiction { text-align: center; font-size: 7.5pt; font-weight: bold; margin-top: 4px; }
+  .italic { font-style: italic; color: #555; }
+  .text-right { text-align: right; }
+  .text-center { text-align: center; }
+  .hsn-table th, .hsn-table td { font-size: 7.5pt; }
+</style>
+</head>
+<body>
+{% for copy in copies %}
+<div class="page">
+    <div class="copy-label">{{ copy }}</div>
+    <div class="header">
+        <h2>TAX INVOICE</h2>
+        <h3>{{ settings.company_name }}</h3>
+        <p>{{ settings.address }}</p>
+        <p><strong>UDYAM:</strong> {{ settings.udyam }} &nbsp;|&nbsp;
+           <strong>GSTIN/UIN:</strong> {{ settings.gstin }} &nbsp;|&nbsp;
+           <strong>PAN:</strong> {{ settings.pan }}</p>
+        <p><strong>State:</strong> {{ settings.state_name }}, Code: {{ settings.state_code }} &nbsp;|&nbsp;
+           <strong>Deals in:</strong> Hospital Items and Equipment</p>
+    </div>
+
+    <!-- Invoice & Buyer Info -->
+    <table style="margin-bottom:4px;">
+        <tr>
+            <td style="width:50%; border:1px solid #000; padding:4px; vertical-align:top;">
+                <strong>Invoice No:</strong> {{ invoice.invoice_no }}<br>
+                <strong>Dated:</strong> {{ invoice.date.strftime('%d-%b-%y') if invoice.date }}<br>
+                {% if invoice.challan_no %}
+                <strong>Challan No:</strong> {{ invoice.challan_no }}<br>
+                <strong>Challan Date:</strong> {{ invoice.challan_date.strftime('%d-%b-%y') if invoice.challan_date }}<br>
+                {% endif %}
+                {% if invoice.buyer_order_no %}
+                <strong>Buyer's Order No:</strong> {{ invoice.buyer_order_no }}<br>
+                {% endif %}
+                {% if invoice.buyer_order_date %}
+                <strong>Dated:</strong> {{ invoice.buyer_order_date.strftime('%d-%b-%y') }}<br>
+                {% endif %}
+                {% if invoice.reference_no_date %}
+                <strong>Reference:</strong> {{ invoice.reference_no_date }}<br>
+                {% endif %}
+                <strong>Mode/Terms of Payment:</strong> {{ invoice.payment_mode }}
+            </td>
+            <td style="width:50%; border:1px solid #000; padding:4px; vertical-align:top;">
+                <strong>Bill To:</strong><br>
+                <strong>{{ invoice.buyer_name }}</strong><br>
+                {{ invoice.buyer_address }}<br>
+                {% if invoice.buyer_gstin %}
+                <strong>GSTIN:</strong> {{ invoice.buyer_gstin }}<br>
+                {% endif %}
+                {% if invoice.buyer_state_name %}
+                <strong>State:</strong> {{ invoice.buyer_state_name }}, Code: {{ invoice.buyer_state_code }}<br>
+                {% endif %}
+                {% if invoice.place_of_supply %}
+                <strong>Place of Supply:</strong> {{ invoice.place_of_supply }}<br>
+                {% endif %}
+            </td>
+        </tr>
+    </table>
+
+    <!-- Dispatch Info -->
+    {% if invoice.dispatched_through or invoice.destination %}
+    <table style="margin-bottom:4px;">
+        <tr>
+            <td style="border:1px solid #000; padding:2px 4px;">
+                {% if invoice.dispatched_through %}<strong>Dispatched through:</strong> {{ invoice.dispatched_through }}&nbsp;&nbsp;{% endif %}
+                {% if invoice.destination %}<strong>Destination:</strong> {{ invoice.destination }}&nbsp;&nbsp;{% endif %}
+                {% if invoice.bill_of_lading %}<strong>Bill of Lading/LR-RR No:</strong> {{ invoice.bill_of_lading }}&nbsp;&nbsp;{% endif %}
+                {% if invoice.motor_vehicle_no %}<strong>Motor Vehicle No:</strong> {{ invoice.motor_vehicle_no }}{% endif %}
+            </td>
+        </tr>
+    </table>
+    {% endif %}
+
+    <!-- Items Table -->
+    <table>
+        <thead>
+            <tr>
+                <th style="width:25px" class="text-center">Sl No.</th>
+                <th>Description of Goods</th>
+                <th style="width:55px" class="text-center">HSN/SAC</th>
+                <th style="width:45px" class="text-center">GST Rate</th>
+                <th style="width:55px" class="text-center">Quantity</th>
+                <th style="width:60px" class="text-right">Rate</th>
+                <th style="width:30px" class="text-center">Per</th>
+                <th style="width:70px" class="text-right">Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in invoice.items %}
+            <tr>
+                <td class="text-center">{{ item.sl_no }}</td>
+                <td>
+                    {% if item.catalog_no %}<span class="italic">[{{ item.catalog_no }}]</span><br>{% endif %}
+                    {{ item.description }}
+                </td>
+                <td class="text-center">{{ item.hsn_code }}</td>
+                <td class="text-center">{{ item.gst_rate }}%</td>
+                <td class="text-center">{{ item.quantity|int if item.quantity == item.quantity|int else item.quantity }} {{ item.unit }}</td>
+                <td class="text-right">{{ "{:,.2f}".format(item.unit_price) }}</td>
+                <td class="text-center">{{ item.unit }}</td>
+                <td class="text-right">{{ "{:,.2f}".format(item.amount) }}</td>
+            </tr>
+            {% endfor %}
+            <!-- Filler row -->
+            <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="7" class="text-right"><strong>Taxable Value</strong></td>
+                <td class="text-right"><strong>{{ "{:,.2f}".format(invoice.subtotal) }}</strong></td>
+            </tr>
+            {% if not invoice.is_igst %}
+            <tr>
+                <td colspan="7" class="text-right">Output CGST</td>
+                <td class="text-right">{{ "{:,.2f}".format(invoice.cgst_total) }}</td>
+            </tr>
+            <tr>
+                <td colspan="7" class="text-right">Output SGST</td>
+                <td class="text-right">{{ "{:,.2f}".format(invoice.sgst_total) }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="7" class="text-right">Output IGST</td>
+                <td class="text-right">{{ "{:,.2f}".format(invoice.igst_total) }}</td>
+            </tr>
+            {% endif %}
+            <tr>
+                <td colspan="7" class="text-right">Rounded Off</td>
+                <td class="text-right">{{ invoice.round_off }}</td>
+            </tr>
+            <tr>
+                <td colspan="7" class="text-right grand-total">Grand Total</td>
+                <td class="text-right grand-total">₹{{ "{:,.2f}".format(invoice.grand_total) }}</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <!-- Amount in Words -->
+    <div style="border:1px solid #000; padding:3px 6px; margin-top:4px; font-size:8.5pt;">
+        <strong>Amount Chargeable (in words):</strong> {{ invoice.amount_in_words }}
+    </div>
+
+    <!-- HSN Tax Breakup -->
+    {% if hsn_breakup %}
+    <div style="margin-top:4px;">
+        <strong style="font-size:8pt;">HSN/SAC-wise Tax Breakup</strong>
+        <table class="hsn-table" style="margin-top:2px;">
+            <thead>
+                <tr>
+                    <th>HSN/SAC</th>
+                    <th class="text-right">Taxable Value</th>
+                    {% if not invoice.is_igst %}
+                    <th class="text-center">CGST Rate</th>
+                    <th class="text-right">CGST Amt</th>
+                    <th class="text-center">SGST Rate</th>
+                    <th class="text-right">SGST Amt</th>
+                    {% else %}
+                    <th class="text-center">IGST Rate</th>
+                    <th class="text-right">IGST Amt</th>
+                    {% endif %}
+                    <th class="text-right">Total Tax</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in hsn_breakup %}
+                <tr>
+                    <td>{{ row.hsn_code }}</td>
+                    <td class="text-right">{{ "{:,.2f}".format(row.taxable_value) }}</td>
+                    {% if not invoice.is_igst %}
+                    <td class="text-center">{{ row.cgst_rate }}%</td>
+                    <td class="text-right">{{ "{:,.2f}".format(row.cgst_amount) }}</td>
+                    <td class="text-center">{{ row.sgst_rate }}%</td>
+                    <td class="text-right">{{ "{:,.2f}".format(row.sgst_amount) }}</td>
+                    {% else %}
+                    <td class="text-center">{{ row.igst_rate }}%</td>
+                    <td class="text-right">{{ "{:,.2f}".format(row.igst_amount) }}</td>
+                    {% endif %}
+                    <td class="text-right"><strong>{{ "{:,.2f}".format(row.total_tax) }}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div style="font-size:8pt; border:1px solid #000; padding:2px 4px; margin-top:2px;">
+            <strong>Tax Amount in Words:</strong> {{ invoice.tax_amount_in_words }}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Bank & Signature -->
+    <div class="footer-section">
+        <table style="border:none;">
+            <tr>
+                <td style="border:none; width:60%; vertical-align:top;">
+                    <strong>Company's Bank Details:</strong><br>
+                    A/c Holder's Name: {{ settings.company_name }}<br>
+                    Bank Name: {{ settings.bank_name }}<br>
+                    A/c No.: {{ settings.bank_account }}<br>
+                    Branch &amp; IFS Code: {{ settings.bank_branch }} &amp; {{ settings.bank_ifsc }}<br><br>
+                    <span class="declaration">
+                        We declare that this invoice shows the actual price of the goods described
+                        and that all particulars are true and correct.
+                    </span>
+                </td>
+                <td style="border:none; text-align:right; vertical-align:bottom;">
+                    for <strong>{{ settings.company_name }}</strong><br><br><br><br>
+                    Authorised Signatory
+                </td>
+            </tr>
+        </table>
+    </div>
+    <div class="jurisdiction">SUBJECT TO KOLKATA JURISDICTION &nbsp;|&nbsp; This is a Computer Generated Invoice</div>
+</div>
+{% endfor %}
+</body>
+</html>

@@ -1,0 +1,493 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Edit' if edit_mode else 'New' }} Invoice – GST Billing{% endblock %}
+{% block content %}
+<div class="row mb-3 align-items-center">
+    <div class="col">
+        <h4><i class="bi bi-receipt me-2"></i>
+            {% if edit_mode %}Edit Invoice {{ invoice.invoice_no }}{% else %}New Tax Invoice{% endif %}
+        </h4>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('invoice.list_invoices') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Back
+        </a>
+    </div>
+</div>
+
+<form method="POST" id="invoiceForm">
+<div class="row g-3">
+
+    <!-- Invoice Details Card -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white"><i class="bi bi-info-circle me-1"></i>Invoice Details</div>
+            <div class="card-body">
+                <div class="row g-2">
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">Invoice No</label>
+                        <input type="text" class="form-control form-control-sm bg-warning-subtle"
+                               value="{{ invoice.invoice_no if edit_mode else next_invoice_no }}" readonly>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-bold">Date <span class="text-danger">*</span></label>
+                        <input type="date" name="date" class="form-control form-control-sm input-editable" required
+                               value="{{ invoice.date.strftime('%Y-%m-%d') if edit_mode and invoice.date else today }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">Challan No</label>
+                        <input type="text" name="challan_no" class="form-control form-control-sm input-editable"
+                               value="{{ invoice.challan_no if edit_mode else '' }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-bold">Challan Date</label>
+                        <input type="date" name="challan_date" class="form-control form-control-sm input-editable"
+                               value="{{ invoice.challan_date.strftime('%Y-%m-%d') if edit_mode and invoice.challan_date else '' }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-bold">Payment Mode</label>
+                        <select name="payment_mode" class="form-select form-select-sm input-editable">
+                            <option value="Bank" {% if not edit_mode or invoice.payment_mode=='Bank' %}selected{% endif %}>Bank</option>
+                            <option value="Cash" {% if edit_mode and invoice.payment_mode=='Cash' %}selected{% endif %}>Cash</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Buyer's Order No</label>
+                        <input type="text" name="buyer_order_no" class="form-control form-control-sm input-editable"
+                               value="{{ invoice.buyer_order_no if edit_mode else '' }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-bold">Order Date</label>
+                        <input type="date" name="buyer_order_date" class="form-control form-control-sm input-editable"
+                               value="{{ invoice.buyer_order_date.strftime('%Y-%m-%d') if edit_mode and invoice.buyer_order_date else '' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">Reference No & Date</label>
+                        <input type="text" name="reference_no_date" class="form-control form-control-sm input-editable"
+                               value="{{ invoice.reference_no_date if edit_mode else '' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">Other Document No</label>
+                        <input type="text" name="other_document_no" class="form-control form-control-sm input-editable"
+                               value="{{ invoice.other_document_no if edit_mode else '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Payment Status</label>
+                        <select name="payment_status" class="form-select form-select-sm input-editable">
+                            <option value="Unpaid" {% if not edit_mode or invoice.payment_status=='Unpaid' %}selected{% endif %}>Unpaid</option>
+                            <option value="Partial" {% if edit_mode and invoice.payment_status=='Partial' %}selected{% endif %}>Partial</option>
+                            <option value="Paid" {% if edit_mode and invoice.payment_status=='Paid' %}selected{% endif %}>Paid</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Buyer Details Card -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-success text-white"><i class="bi bi-person me-1"></i>Bill To (Buyer)</div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <label class="form-label small">Select Existing Customer</label>
+                    <select id="customerSelect" class="form-select form-select-sm input-selector">
+                        <option value="">-- Select or type below --</option>
+                        {% for c in customers %}
+                        <option value="{{ c.id }}"
+                                data-name="{{ c.name }}"
+                                data-address="{{ c.address }}"
+                                data-gstin="{{ c.gstin }}"
+                                data-state-name="{{ c.state_name }}"
+                                data-state-code="{{ c.state_code }}"
+                                {% if edit_mode and invoice.buyer_id == c.id %}selected{% endif %}>
+                            {{ c.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <input type="hidden" name="buyer_id" id="buyerId" value="{{ invoice.buyer_id if edit_mode else '' }}">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Buyer Name <span class="text-danger">*</span></label>
+                    <input type="text" name="buyer_name" id="buyerName" class="form-control form-control-sm input-editable" required
+                           value="{{ invoice.buyer_name if edit_mode else '' }}">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small fw-bold">Address</label>
+                    <textarea name="buyer_address" id="buyerAddress" class="form-control form-control-sm input-editable" rows="3">{{ invoice.buyer_address if edit_mode else '' }}</textarea>
+                </div>
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">GSTIN</label>
+                        <input type="text" name="buyer_gstin" id="buyerGstin" class="form-control form-control-sm input-editable"
+                               value="{{ invoice.buyer_gstin if edit_mode else '' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">State Name</label>
+                        <input type="text" name="buyer_state_name" id="buyerStateName" class="form-control form-control-sm input-editable"
+                               value="{{ invoice.buyer_state_name if edit_mode else '' }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Supply Details -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-info text-white"><i class="bi bi-geo-alt me-1"></i>Place of Supply & Dispatch</div>
+            <div class="card-body">
+                <div class="row g-2">
+                    <div class="col-md-8">
+                        <label class="form-label small fw-bold">Place of Supply</label>
+                        <input type="text" name="place_of_supply" id="placeOfSupply" class="form-control form-control-sm input-editable"
+                               value="{{ invoice.place_of_supply if edit_mode else '' }}"
+                               placeholder="e.g. West Bengal">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">State Code</label>
+                        <input type="text" name="place_of_supply_code" id="placeCode" class="form-control form-control-sm input-editable"
+                               value="{{ invoice.place_of_supply_code if edit_mode else '19' }}"
+                               placeholder="19">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Buyer State Code</label>
+                        <input type="text" name="buyer_state_code" id="buyerStateCode" class="form-control form-control-sm input-editable"
+                               value="{{ invoice.buyer_state_code if edit_mode else '19' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">GST Type</label>
+                        <input type="text" id="gstType" class="form-control form-control-sm bg-warning-subtle" readonly
+                               value="CGST + SGST">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Dispatched Through</label>
+                        <input type="text" name="dispatched_through" class="form-control form-control-sm input-editable"
+                               value="{{ invoice.dispatched_through if edit_mode else '' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Destination</label>
+                        <input type="text" name="destination" class="form-control form-control-sm input-editable"
+                               value="{{ invoice.destination if edit_mode else '' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Bill of Lading / LR-RR No</label>
+                        <input type="text" name="bill_of_lading" class="form-control form-control-sm input-editable"
+                               value="{{ invoice.bill_of_lading if edit_mode else '' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Motor Vehicle No</label>
+                        <input type="text" name="motor_vehicle_no" class="form-control form-control-sm input-editable"
+                               value="{{ invoice.motor_vehicle_no if edit_mode else '' }}">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-bold">Terms of Delivery</label>
+                        <input type="text" name="terms_of_delivery" class="form-control form-control-sm input-editable"
+                               value="{{ invoice.terms_of_delivery if edit_mode else '' }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Line Items -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-list-ul me-1"></i>Line Items</span>
+                <button type="button" class="btn btn-sm btn-success" onclick="addItemRow()">
+                    <i class="bi bi-plus-circle me-1"></i>Add Item
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                <table class="table table-bordered table-sm mb-0" id="itemsTable">
+                    <thead class="table-secondary">
+                        <tr>
+                            <th style="width:30px">Sl</th>
+                            <th style="width:120px">Catalog No</th>
+                            <th>Description of Goods</th>
+                            <th style="width:90px">HSN/SAC</th>
+                            <th style="width:80px">GST %</th>
+                            <th style="width:80px">Qty</th>
+                            <th style="width:60px">Unit</th>
+                            <th style="width:100px">Rate (₹)</th>
+                            <th style="width:110px">Amount (₹)</th>
+                            <th style="width:90px">Lot No</th>
+                            <th style="width:90px">Mfg Date</th>
+                            <th style="width:90px">Exp Date</th>
+                            <th style="width:40px"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="itemsTbody">
+                        {% if edit_mode and invoice.items %}
+                            {% for item in invoice.items %}
+                            <tr>
+                                <td class="text-center small sl-no">{{ loop.index }}</td>
+                                <td><input type="text" name="catalog_no[]" class="form-control form-control-sm input-editable" value="{{ item.catalog_no }}"></td>
+                                <td>
+                                    <select class="form-select form-select-sm product-select input-selector mb-1" onchange="fillProductRow(this)">
+                                        <option value="">-- Product --</option>
+                                        {% for p in products %}
+                                        <option value="{{ p.id }}"
+                                            data-catalog="{{ p.catalog_no }}"
+                                            data-name="{{ p.name }}"
+                                            data-hsn="{{ p.hsn_code }}"
+                                            data-gst="{{ p.default_gst_rate }}"
+                                            data-price="{{ p.default_unit_price }}"
+                                            data-unit="{{ p.unit }}">{{ p.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <input type="text" name="description[]" class="form-control form-control-sm input-editable" value="{{ item.description }}" required>
+                                    <input type="hidden" name="product_id[]" class="product-id" value="">
+                                </td>
+                                <td><input type="text" name="hsn_code[]" class="form-control form-control-sm input-editable" value="{{ item.hsn_code }}"></td>
+                                <td>
+                                    <select name="gst_rate[]" class="form-select form-select-sm input-editable gst-rate">
+                                        {% for rate in [0, 5, 12, 18, 28] %}
+                                        <option value="{{ rate }}" {% if item.gst_rate == rate %}selected{% endif %}>{{ rate }}%</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td><input type="number" name="quantity[]" class="form-control form-control-sm input-editable qty" step="0.01" value="{{ item.quantity }}" onchange="calcRow(this)"></td>
+                                <td>
+                                    <select name="unit[]" class="form-select form-select-sm input-editable">
+                                        {% for u in ['Pcs','Nos','Kg','Ltr','Box','Set','Pair'] %}
+                                        <option value="{{ u }}" {% if item.unit == u %}selected{% endif %}>{{ u }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td><input type="number" name="unit_price[]" class="form-control form-control-sm input-editable price" step="0.01" value="{{ item.unit_price }}" onchange="calcRow(this)"></td>
+                                <td><input type="number" name="amount[]" class="form-control form-control-sm bg-warning-subtle amount" readonly value="{{ item.amount }}"></td>
+                                <td><input type="text" name="lot_no[]" class="form-control form-control-sm input-editable" value="{{ item.lot_no }}"></td>
+                                <td><input type="text" name="mfg_date[]" class="form-control form-control-sm input-editable" value="{{ item.mfg_date }}" placeholder="MM/YY"></td>
+                                <td><input type="text" name="exp_date[]" class="form-control form-control-sm input-editable" value="{{ item.exp_date }}" placeholder="MM/YY"></td>
+                                <td><button type="button" class="btn btn-danger btn-sm py-0 px-1" onclick="removeRow(this)"><i class="bi bi-trash"></i></button></td>
+                            </tr>
+                            {% endfor %}
+                        {% endif %}
+                    </tbody>
+                </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Totals -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-calculator me-1"></i>Notes</div>
+            <div class="card-body">
+                <textarea name="notes" class="form-control form-control-sm" rows="4"
+                          placeholder="Internal notes (not printed on invoice)">{{ invoice.notes if edit_mode else '' }}</textarea>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white"><i class="bi bi-calculator me-1"></i>Totals</div>
+            <div class="card-body">
+                <table class="table table-sm mb-0">
+                    <tr><td>Taxable Value</td><td class="text-end fw-bold"><span id="totalSubtotal">0.00</span></td></tr>
+                    <tr id="cgstRow"><td>Output CGST</td><td class="text-end"><span id="totalCgst">0.00</span></td></tr>
+                    <tr id="sgstRow"><td>Output SGST</td><td class="text-end"><span id="totalSgst">0.00</span></td></tr>
+                    <tr id="igstRow" style="display:none"><td>Output IGST</td><td class="text-end"><span id="totalIgst">0.00</span></td></tr>
+                    <tr><td>Round Off</td><td class="text-end"><span id="totalRoundOff">0.00</span></td></tr>
+                    <tr class="table-success"><td class="fw-bold fs-5">Grand Total</td><td class="text-end fw-bold fs-5">₹<span id="totalGrand">0.00</span></td></tr>
+                </table>
+                <div class="mt-2 text-muted small" id="amountInWords"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submit -->
+    <div class="col-12 text-end">
+        <a href="{{ url_for('invoice.list_invoices') }}" class="btn btn-secondary me-2">Cancel</a>
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-save me-1"></i>
+            {% if edit_mode %}Update Invoice{% else %}Save Invoice{% endif %}
+        </button>
+    </div>
+</div>
+</form>
+
+<!-- Product row template (hidden) -->
+<template id="itemRowTemplate">
+<tr>
+    <td class="text-center small sl-no"></td>
+    <td><input type="text" name="catalog_no[]" class="form-control form-control-sm input-editable"></td>
+    <td>
+        <select class="form-select form-select-sm product-select input-selector mb-1" onchange="fillProductRow(this)">
+            <option value="">-- Product --</option>
+            {% for p in products %}
+            <option value="{{ p.id }}"
+                data-catalog="{{ p.catalog_no }}"
+                data-name="{{ p.name }}"
+                data-hsn="{{ p.hsn_code }}"
+                data-gst="{{ p.default_gst_rate }}"
+                data-price="{{ p.default_unit_price }}"
+                data-unit="{{ p.unit }}">{{ p.name }}</option>
+            {% endfor %}
+        </select>
+        <input type="text" name="description[]" class="form-control form-control-sm input-editable" required>
+        <input type="hidden" name="product_id[]" class="product-id" value="">
+    </td>
+    <td><input type="text" name="hsn_code[]" class="form-control form-control-sm input-editable"></td>
+    <td>
+        <select name="gst_rate[]" class="form-select form-select-sm input-editable gst-rate">
+            <option value="0">0%</option>
+            <option value="5" selected>5%</option>
+            <option value="12">12%</option>
+            <option value="18">18%</option>
+            <option value="28">28%</option>
+        </select>
+    </td>
+    <td><input type="number" name="quantity[]" class="form-control form-control-sm input-editable qty" step="0.01" value="1" onchange="calcRow(this)"></td>
+    <td>
+        <select name="unit[]" class="form-select form-select-sm input-editable">
+            <option>Pcs</option><option>Nos</option><option>Kg</option>
+            <option>Ltr</option><option>Box</option><option>Set</option><option>Pair</option>
+        </select>
+    </td>
+    <td><input type="number" name="unit_price[]" class="form-control form-control-sm input-editable price" step="0.01" value="0" onchange="calcRow(this)"></td>
+    <td><input type="number" name="amount[]" class="form-control form-control-sm bg-warning-subtle amount" readonly value="0"></td>
+    <td><input type="text" name="lot_no[]" class="form-control form-control-sm input-editable"></td>
+    <td><input type="text" name="mfg_date[]" class="form-control form-control-sm input-editable" placeholder="MM/YY"></td>
+    <td><input type="text" name="exp_date[]" class="form-control form-control-sm input-editable" placeholder="MM/YY"></td>
+    <td><button type="button" class="btn btn-danger btn-sm py-0 px-1" onclick="removeRow(this)"><i class="bi bi-trash"></i></button></td>
+</tr>
+</template>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-fill buyer fields when customer selected
+document.getElementById('customerSelect').addEventListener('change', function() {
+    const opt = this.options[this.selectedIndex];
+    document.getElementById('buyerId').value = opt.value || '';
+    if (opt.value) {
+        document.getElementById('buyerName').value = opt.dataset.name || '';
+        document.getElementById('buyerAddress').value = opt.dataset.address || '';
+        document.getElementById('buyerGstin').value = opt.dataset.gstin || '';
+        document.getElementById('buyerStateName').value = opt.dataset.stateName || '';
+        document.getElementById('buyerStateCode').value = opt.dataset.stateCode || '';
+        if (opt.dataset.stateCode) {
+            document.getElementById('placeCode').value = opt.dataset.stateCode;
+        }
+        updateGstType();
+    }
+});
+
+// Detect IGST vs CGST+SGST
+function updateGstType() {
+    const sellerCode = '{{ settings.state_code if settings else "19" }}';
+    const buyerCode = document.getElementById('buyerStateCode').value;
+    const placeCode = document.getElementById('placeCode').value;
+    const isIgst = (buyerCode && buyerCode !== sellerCode) || (placeCode && placeCode !== sellerCode);
+    document.getElementById('gstType').value = isIgst ? 'IGST' : 'CGST + SGST';
+    document.getElementById('cgstRow').style.display = isIgst ? 'none' : '';
+    document.getElementById('sgstRow').style.display = isIgst ? 'none' : '';
+    document.getElementById('igstRow').style.display = isIgst ? '' : 'none';
+    recalcTotals();
+}
+document.getElementById('buyerStateCode').addEventListener('input', updateGstType);
+document.getElementById('placeCode').addEventListener('input', updateGstType);
+
+// Fill product row from product selector
+function fillProductRow(sel) {
+    const opt = sel.options[sel.selectedIndex];
+    if (!opt.value) return;
+    const row = sel.closest('tr');
+    row.querySelector('input[name="catalog_no[]"]').value = opt.dataset.catalog || '';
+    row.querySelector('input[name="description[]"]').value = opt.dataset.name || '';
+    row.querySelector('input[name="hsn_code[]"]').value = opt.dataset.hsn || '';
+    row.querySelector('select[name="gst_rate[]"]').value = opt.dataset.gst || '5';
+    row.querySelector('input[name="unit_price[]"]').value = opt.dataset.price || '0';
+    row.querySelector('.product-id').value = opt.value;
+    const unitSel = row.querySelector('select[name="unit[]"]');
+    if (unitSel && opt.dataset.unit) {
+        Array.from(unitSel.options).forEach(o => o.selected = (o.value === opt.dataset.unit));
+    }
+    calcRow(row.querySelector('.qty'));
+}
+
+// Calculate row amount
+function calcRow(input) {
+    const row = input.closest('tr');
+    const qty = parseFloat(row.querySelector('.qty').value) || 0;
+    const price = parseFloat(row.querySelector('.price').value) || 0;
+    const amount = Math.round(qty * price * 100) / 100;
+    row.querySelector('.amount').value = amount.toFixed(2);
+    recalcTotals();
+}
+
+// Recalculate all totals
+function recalcTotals() {
+    const sellerCode = '{{ settings.state_code if settings else "19" }}';
+    const placeCode = document.getElementById('placeCode').value || '19';
+    const isIgst = placeCode !== sellerCode;
+    let subtotal = 0, cgst = 0, sgst = 0, igst = 0;
+    document.querySelectorAll('#itemsTbody tr').forEach(row => {
+        const amt = parseFloat(row.querySelector('.amount')?.value) || 0;
+        const rate = parseFloat(row.querySelector('.gst-rate')?.value) || 0;
+        subtotal += amt;
+        if (isIgst) {
+            igst += Math.round(amt * rate / 100 * 100) / 100;
+        } else {
+            cgst += Math.round(amt * (rate/2) / 100 * 100) / 100;
+            sgst += Math.round(amt * (rate/2) / 100 * 100) / 100;
+        }
+    });
+    subtotal = Math.round(subtotal * 100) / 100;
+    cgst = Math.round(cgst * 100) / 100;
+    sgst = Math.round(sgst * 100) / 100;
+    igst = Math.round(igst * 100) / 100;
+    const beforeRound = subtotal + cgst + sgst + igst;
+    const grand = Math.round(beforeRound);
+    const roundOff = Math.round((grand - beforeRound) * 100) / 100;
+
+    document.getElementById('totalSubtotal').textContent = formatINR(subtotal);
+    document.getElementById('totalCgst').textContent = formatINR(cgst);
+    document.getElementById('totalSgst').textContent = formatINR(sgst);
+    document.getElementById('totalIgst').textContent = formatINR(igst);
+    document.getElementById('totalRoundOff').textContent = formatINR(roundOff);
+    document.getElementById('totalGrand').textContent = formatINR(grand);
+}
+
+function formatINR(n) {
+    return n.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+
+// Add a new item row
+function addItemRow() {
+    const tpl = document.getElementById('itemRowTemplate');
+    const clone = tpl.content.cloneNode(true);
+    const tbody = document.getElementById('itemsTbody');
+    tbody.appendChild(clone);
+    renumberRows();
+}
+
+// Remove row
+function removeRow(btn) {
+    btn.closest('tr').remove();
+    renumberRows();
+    recalcTotals();
+}
+
+// Renumber serial numbers
+function renumberRows() {
+    document.querySelectorAll('#itemsTbody tr').forEach((row, i) => {
+        const sl = row.querySelector('.sl-no');
+        if (sl) sl.textContent = i + 1;
+    });
+}
+
+// Init: add one row if no items
+window.addEventListener('DOMContentLoaded', function() {
+    {% if not edit_mode or not invoice.items %}
+    addItemRow();
+    {% endif %}
+    updateGstType();
+    recalcTotals();
+});
+</script>
+{% endblock %}

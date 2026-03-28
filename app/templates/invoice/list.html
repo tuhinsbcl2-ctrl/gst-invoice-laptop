@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block title %}Invoices{% endblock %}
+{% block content %}
+<div class="row mb-3 align-items-center">
+    <div class="col">
+        <h4><i class="bi bi-receipt me-2"></i>Tax Invoices</h4>
+    </div>
+    <div class="col-auto d-flex gap-2">
+        <a href="{{ url_for('invoice.create_invoice') }}" class="btn btn-success">
+            <i class="bi bi-plus-circle me-1"></i>New Invoice
+        </a>
+        <a href="{{ url_for('invoice.export_excel') }}" class="btn btn-outline-success btn-sm">
+            <i class="bi bi-file-earmark-excel me-1"></i>Excel
+        </a>
+        <a href="{{ url_for('invoice.export_csv') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-filetype-csv me-1"></i>CSV
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<form class="row g-2 mb-3" method="get">
+    <div class="col-md-5">
+        <input type="text" class="form-control form-control-sm" name="q" value="{{ q }}"
+               placeholder="Search invoice no or buyer name…">
+    </div>
+    <div class="col-md-3">
+        <select name="status" class="form-select form-select-sm">
+            <option value="">All Statuses</option>
+            <option value="Unpaid" {% if status=='Unpaid' %}selected{% endif %}>Unpaid</option>
+            <option value="Partial" {% if status=='Partial' %}selected{% endif %}>Partial</option>
+            <option value="Paid" {% if status=='Paid' %}selected{% endif %}>Paid</option>
+        </select>
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+        <a href="{{ url_for('invoice.list_invoices') }}" class="btn btn-outline-secondary btn-sm">Clear</a>
+    </div>
+</form>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover table-sm mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>Invoice No</th>
+                    <th>Date</th>
+                    <th>Buyer</th>
+                    <th>Place of Supply</th>
+                    <th class="text-end">Taxable</th>
+                    <th class="text-end">GST</th>
+                    <th class="text-end">Grand Total</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inv in invoices %}
+                <tr>
+                    <td><a href="{{ url_for('invoice.view_invoice', invoice_id=inv.id) }}" class="fw-bold">{{ inv.invoice_no }}</a></td>
+                    <td>{{ inv.date.strftime('%d-%b-%y') if inv.date }}</td>
+                    <td>{{ inv.buyer_name }}</td>
+                    <td>{{ inv.place_of_supply }}</td>
+                    <td class="text-end">₹{{ "{:,.2f}".format(inv.subtotal) }}</td>
+                    <td class="text-end">₹{{ "{:,.2f}".format(inv.cgst_total + inv.sgst_total + inv.igst_total) }}</td>
+                    <td class="text-end fw-bold">₹{{ "{:,.2f}".format(inv.grand_total) }}</td>
+                    <td>
+                        {% if inv.payment_status == 'Paid' %}
+                            <span class="badge bg-success">Paid</span>
+                        {% elif inv.payment_status == 'Partial' %}
+                            <span class="badge bg-warning text-dark">Partial</span>
+                        {% else %}
+                            <span class="badge bg-danger">Unpaid</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('invoice.view_invoice', invoice_id=inv.id) }}" class="btn btn-xs btn-outline-primary btn-sm py-0 px-1" title="View"><i class="bi bi-eye"></i></a>
+                        <a href="{{ url_for('invoice.edit_invoice', invoice_id=inv.id) }}" class="btn btn-xs btn-outline-secondary btn-sm py-0 px-1" title="Edit"><i class="bi bi-pencil"></i></a>
+                        <a href="{{ url_for('invoice.download_pdf', invoice_id=inv.id) }}" class="btn btn-xs btn-outline-danger btn-sm py-0 px-1" title="PDF" target="_blank"><i class="bi bi-file-pdf"></i></a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="9" class="text-center text-muted py-4">No invoices found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

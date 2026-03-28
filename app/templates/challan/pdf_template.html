@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page { size: A4; margin: 12mm 10mm; }
+  body { font-family: Arial, sans-serif; font-size: 9pt; color: #000; }
+  .page { page-break-after: always; border: 1px solid #000; padding: 8px; position: relative; min-height: 270mm; }
+  .page:last-child { page-break-after: avoid; }
+  .copy-label { position: absolute; top: 6px; right: 8px; font-size: 8pt; font-weight: bold; color: #555; border: 1px solid #999; padding: 2px 6px; }
+  .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 4px; }
+  .header h2 { margin: 0; font-size: 14pt; }
+  .header h3 { margin: 0; font-size: 11pt; }
+  .header p { margin: 1px 0; font-size: 8pt; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid #000; padding: 2px 4px; }
+  th { background: #e8e8e8; font-size: 8pt; }
+  td { font-size: 8pt; }
+  .italic { font-style: italic; color: #555; }
+  .text-right { text-align: right; }
+  .text-center { text-align: center; }
+  .footer-section { margin-top: 12px; border-top: 1px solid #000; padding-top: 4px; text-align: right; }
+  .jurisdiction { text-align: center; font-size: 7.5pt; font-weight: bold; margin-top: 4px; }
+</style>
+</head>
+<body>
+{% for copy in copies %}
+<div class="page">
+    <div class="copy-label">{{ copy }}</div>
+    <div class="header">
+        <h2>DELIVERY CHALLAN</h2>
+        <h3>{{ settings.company_name }}</h3>
+        <p>{{ settings.address }}</p>
+        <p><strong>GSTIN/UIN:</strong> {{ settings.gstin }} &nbsp;|&nbsp;
+           <strong>State:</strong> {{ settings.state_name }}, Code: {{ settings.state_code }}</p>
+    </div>
+
+    <!-- Challan & Buyer Info -->
+    <table style="margin-bottom:4px;">
+        <tr>
+            <td style="width:50%; border:1px solid #000; padding:4px; vertical-align:top;">
+                <strong>Challan No:</strong> {{ invoice.challan_no or invoice.invoice_no }}<br>
+                <strong>Dated:</strong> {{ (invoice.challan_date or invoice.date).strftime('%d-%b-%y') if (invoice.challan_date or invoice.date) }}<br>
+                {% if invoice.buyer_order_no %}
+                <strong>Buyer's Order No:</strong> {{ invoice.buyer_order_no }}<br>
+                {% endif %}
+                {% if invoice.reference_no_date %}
+                <strong>Reference:</strong> {{ invoice.reference_no_date }}<br>
+                {% endif %}
+            </td>
+            <td style="width:50%; border:1px solid #000; padding:4px; vertical-align:top;">
+                <strong>To:</strong><br>
+                <strong>{{ invoice.buyer_name }}</strong><br>
+                {{ invoice.buyer_address }}<br>
+                {% if invoice.buyer_state_name %}
+                <strong>State:</strong> {{ invoice.buyer_state_name }}<br>
+                {% endif %}
+            </td>
+        </tr>
+    </table>
+
+    <!-- Items Table (no rate/amount columns) -->
+    <table>
+        <thead>
+            <tr>
+                <th style="width:25px" class="text-center">Sl No.</th>
+                <th style="width:80px" class="text-center">Catalog No.</th>
+                <th>Item Name</th>
+                <th style="width:70px" class="text-center">Lot No</th>
+                <th style="width:65px" class="text-center">Mfg Date</th>
+                <th style="width:65px" class="text-center">Exp. Date</th>
+                <th style="width:60px" class="text-center">Quantity</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in invoice.items %}
+            <tr>
+                <td class="text-center">{{ item.sl_no }}</td>
+                <td class="text-center">{{ item.catalog_no }}</td>
+                <td>{{ item.description }}</td>
+                <td class="text-center">{{ item.lot_no or '' }}</td>
+                <td class="text-center">{{ item.mfg_date or '' }}</td>
+                <td class="text-center">{{ item.exp_date or '' }}</td>
+                <td class="text-center">{{ item.quantity|int if item.quantity == item.quantity|int else item.quantity }} {{ item.unit }}</td>
+            </tr>
+            {% endfor %}
+            <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        </tbody>
+    </table>
+
+    <!-- Footer -->
+    <div class="footer-section">
+        for <strong>{{ settings.company_name }}</strong><br><br><br>
+        Authorised Signatory
+    </div>
+    <div class="jurisdiction">SUBJECT TO KOLKATA JURISDICTION</div>
+</div>
+{% endfor %}
+</body>
+</html>
