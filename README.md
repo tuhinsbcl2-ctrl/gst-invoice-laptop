@@ -19,7 +19,7 @@ A complete, self-contained GST Billing Application for **NIBRITY ENTERPRISE** th
 ## Quick Start
 
 ### Requirements
-- Python 3.8+
+- Python 3.10+
 - pip
 
 ### Installation
