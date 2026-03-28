@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% block title %}Company Settings{% endblock %}
+{% block content %}
+<div class="row mb-3 align-items-center">
+    <div class="col"><h4><i class="bi bi-gear me-2"></i>Company Settings</h4></div>
+</div>
+<div class="card" style="max-width:700px;">
+    <div class="card-body">
+        <form method="POST">
+            <h6 class="fw-bold text-primary border-bottom pb-1 mb-3">Company Information</h6>
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="form-label fw-bold">Company Name</label>
+                    <input type="text" name="company_name" class="form-control"
+                           value="{{ settings.company_name if settings else 'NIBRITY ENTERPRISE (GOVT ORDER SUPPLIER)' }}">
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-bold">Address</label>
+                    <textarea name="address" class="form-control" rows="3">{{ settings.address if settings else '' }}</textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">GSTIN</label>
+                    <input type="text" name="gstin" class="form-control"
+                           value="{{ settings.gstin if settings else '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">PAN</label>
+                    <input type="text" name="pan" class="form-control"
+                           value="{{ settings.pan if settings else '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">UDYAM No</label>
+                    <input type="text" name="udyam" class="form-control"
+                           value="{{ settings.udyam if settings else '' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">State Name</label>
+                    <input type="text" name="state_name" class="form-control"
+                           value="{{ settings.state_name if settings else 'West Bengal' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">State Code</label>
+                    <input type="text" name="state_code" class="form-control"
+                           value="{{ settings.state_code if settings else '19' }}">
+                </div>
+            </div>
+
+            <h6 class="fw-bold text-primary border-bottom pb-1 mb-3 mt-4">Bank Details</h6>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Bank Name</label>
+                    <input type="text" name="bank_name" class="form-control"
+                           value="{{ settings.bank_name if settings else 'Punjab National Bank' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">A/c No.</label>
+                    <input type="text" name="bank_account" class="form-control"
+                           value="{{ settings.bank_account if settings else '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">IFS Code</label>
+                    <input type="text" name="bank_ifsc" class="form-control"
+                           value="{{ settings.bank_ifsc if settings else '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Branch Name</label>
+                    <input type="text" name="bank_branch" class="form-control"
+                           value="{{ settings.bank_branch if settings else '' }}">
+                </div>
+            </div>
+
+            <h6 class="fw-bold text-primary border-bottom pb-1 mb-3 mt-4">Invoice Settings</h6>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Invoice Prefix</label>
+                    <input type="text" name="invoice_prefix" class="form-control"
+                           value="{{ settings.invoice_prefix if settings else 'NE' }}"
+                           placeholder="e.g. NE">
+                    <div class="form-text">Format: PREFIX/001/25-26</div>
+                </div>
+            </div>
+
+            <div class="mt-4 text-end">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save me-1"></i>Save Settings
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

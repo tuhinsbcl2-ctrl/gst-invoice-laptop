@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}Restore Database{% endblock %}
+{% block content %}
+<div class="row mb-3">
+    <div class="col"><h4><i class="bi bi-cloud-upload me-2"></i>Restore Database</h4></div>
+    <div class="col-auto"><a href="{{ url_for('reports.dashboard') }}" class="btn btn-outline-secondary btn-sm">Back</a></div>
+</div>
+<div class="card" style="max-width:500px;">
+    <div class="card-body">
+        <div class="alert alert-warning small">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            This will replace the current database with the backup. All unsaved data will be lost.
+        </div>
+        <form method="POST" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label class="form-label fw-bold">Select Backup ZIP file</label>
+                <input type="file" name="backup_file" class="form-control" accept=".zip" required>
+            </div>
+            <button type="submit" class="btn btn-warning" onclick="return confirm('Are you sure? This will overwrite the current database.')">
+                <i class="bi bi-cloud-upload me-1"></i>Restore
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

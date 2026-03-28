@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+{% block title %}Invoice {{ invoice.invoice_no }}{% endblock %}
+{% block content %}
+<div class="row mb-3 align-items-center">
+    <div class="col">
+        <h4><i class="bi bi-receipt me-2"></i>Invoice {{ invoice.invoice_no }}</h4>
+    </div>
+    <div class="col-auto d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('invoice.edit_invoice', invoice_id=invoice.id) }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-pencil me-1"></i>Edit
+        </a>
+        <a href="{{ url_for('invoice.download_pdf', invoice_id=invoice.id) }}" class="btn btn-danger btn-sm" target="_blank">
+            <i class="bi bi-file-pdf me-1"></i>Invoice PDF
+        </a>
+        <a href="{{ url_for('challan.download_challan_pdf', invoice_id=invoice.id) }}" class="btn btn-outline-danger btn-sm" target="_blank">
+            <i class="bi bi-truck me-1"></i>Challan PDF
+        </a>
+        <a href="{{ url_for('invoice.combined_pdf', invoice_id=invoice.id) }}" class="btn btn-primary btn-sm" target="_blank">
+            <i class="bi bi-files me-1"></i>Combined PDF (7 pages)
+        </a>
+        {% if invoice.payment_status != 'Paid' %}
+        <form method="POST" action="{{ url_for('invoice.mark_paid', invoice_id=invoice.id) }}" class="d-inline">
+            <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Mark as Paid?')">
+                <i class="bi bi-check-circle me-1"></i>Mark Paid
+            </button>
+        </form>
+        {% endif %}
+        <a href="{{ url_for('invoice.list_invoices') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Back
+        </a>
+    </div>
+</div>
+
+<!-- Invoice Preview Card -->
+<div class="card shadow">
+    <div class="card-body p-4" id="invoicePreview">
+        <!-- Company Header -->
+        <div class="text-center border-bottom pb-3 mb-3">
+            <h5 class="fw-bold mb-1">TAX INVOICE</h5>
+            <h4 class="fw-bold text-primary">{{ settings.company_name }}</h4>
+            <p class="mb-0 small">{{ settings.address }}</p>
+            <p class="mb-0 small">
+                <strong>UDYAM:</strong> {{ settings.udyam }} &nbsp;|&nbsp;
+                <strong>GSTIN:</strong> {{ settings.gstin }} &nbsp;|&nbsp;
+                <strong>PAN:</strong> {{ settings.pan }}
+            </p>
+            <p class="mb-0 small"><strong>State:</strong> {{ settings.state_name }}, Code: {{ settings.state_code }}</p>
+        </div>
+
+        <!-- Invoice Info -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <table class="table table-sm table-borderless mb-0">
+                    <tr><td class="fw-bold" style="width:40%">Invoice No:</td><td>{{ invoice.invoice_no }}</td></tr>
+                    <tr><td class="fw-bold">Date:</td><td>{{ invoice.date.strftime('%d-%b-%y') if invoice.date }}</td></tr>
+                    {% if invoice.challan_no %}
+                    <tr><td class="fw-bold">Challan No:</td><td>{{ invoice.challan_no }}</td></tr>
+                    {% endif %}
+                    {% if invoice.challan_date %}
+                    <tr><td class="fw-bold">Challan Date:</td><td>{{ invoice.challan_date.strftime('%d-%b-%y') }}</td></tr>
+                    {% endif %}
+                    {% if invoice.buyer_order_no %}
+                    <tr><td class="fw-bold">Buyer's Order No:</td><td>{{ invoice.buyer_order_no }}</td></tr>
+                    {% endif %}
+                    {% if invoice.buyer_order_date %}
+                    <tr><td class="fw-bold">Order Date:</td><td>{{ invoice.buyer_order_date.strftime('%d-%b-%y') }}</td></tr>
+                    {% endif %}
+                </table>
+            </div>
+            <div class="col-md-6">
+                <table class="table table-sm table-borderless mb-0">
+                    <tr><td class="fw-bold" style="width:40%">Payment Mode:</td><td>{{ invoice.payment_mode }}</td></tr>
+                    <tr><td class="fw-bold">Payment Status:</td>
+                        <td>
+                            {% if invoice.payment_status == 'Paid' %}
+                                <span class="badge bg-success">Paid</span>
+                            {% elif invoice.payment_status == 'Partial' %}
+                                <span class="badge bg-warning text-dark">Partial</span>
+                            {% else %}
+                                <span class="badge bg-danger">Unpaid</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% if invoice.dispatched_through %}
+                    <tr><td class="fw-bold">Dispatched:</td><td>{{ invoice.dispatched_through }}</td></tr>
+                    {% endif %}
+                    {% if invoice.destination %}
+                    <tr><td class="fw-bold">Destination:</td><td>{{ invoice.destination }}</td></tr>
+                    {% endif %}
+                    {% if invoice.motor_vehicle_no %}
+                    <tr><td class="fw-bold">Vehicle No:</td><td>{{ invoice.motor_vehicle_no }}</td></tr>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+
+        <!-- Buyer -->
+        <div class="border rounded p-2 mb-3 bg-light">
+            <strong>Bill To:</strong><br>
+            <span class="fw-bold">{{ invoice.buyer_name }}</span><br>
+            {% if invoice.buyer_address %}<small>{{ invoice.buyer_address }}</small><br>{% endif %}
+            {% if invoice.buyer_gstin %}<small><strong>GSTIN:</strong> {{ invoice.buyer_gstin }}</small><br>{% endif %}
+            {% if invoice.buyer_state_name %}<small><strong>State:</strong> {{ invoice.buyer_state_name }}, Code: {{ invoice.buyer_state_code }}</small><br>{% endif %}
+            {% if invoice.place_of_supply %}<small><strong>Place of Supply:</strong> {{ invoice.place_of_supply }}</small>{% endif %}
+        </div>
+
+        <!-- Items Table -->
+        <div class="table-responsive">
+        <table class="table table-bordered table-sm">
+            <thead class="table-dark">
+                <tr>
+                    <th>Sl No</th>
+                    <th>Description of Goods</th>
+                    <th>HSN/SAC</th>
+                    <th>GST Rate</th>
+                    <th>Qty</th>
+                    <th>Rate</th>
+                    <th>Amount</th>
+                    {% if not invoice.is_igst %}
+                    <th>CGST</th>
+                    <th>SGST</th>
+                    {% else %}
+                    <th>IGST</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in invoice.items %}
+                <tr>
+                    <td>{{ item.sl_no }}</td>
+                    <td>
+                        {% if item.catalog_no %}<em class="text-muted small">[{{ item.catalog_no }}]</em><br>{% endif %}
+                        {{ item.description }}
+                    </td>
+                    <td>{{ item.hsn_code }}</td>
+                    <td>{{ item.gst_rate }}%</td>
+                    <td>{{ item.quantity|int if item.quantity == item.quantity|int else item.quantity }} {{ item.unit }}</td>
+                    <td class="text-end">₹{{ "{:,.2f}".format(item.unit_price) }}</td>
+                    <td class="text-end">₹{{ "{:,.2f}".format(item.amount) }}</td>
+                    {% if not invoice.is_igst %}
+                    <td class="text-end">{{ item.cgst_rate }}%<br>₹{{ "{:,.2f}".format(item.cgst_amount) }}</td>
+                    <td class="text-end">{{ item.sgst_rate }}%<br>₹{{ "{:,.2f}".format(item.sgst_amount) }}</td>
+                    {% else %}
+                    <td class="text-end">{{ item.igst_rate }}%<br>₹{{ "{:,.2f}".format(item.igst_amount) }}</td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+
+        <!-- Totals -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="bg-light border rounded p-3 small">
+                    <strong>Amount in Words:</strong><br>
+                    {{ invoice.amount_in_words }}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <table class="table table-sm table-borderless">
+                    <tr><td>Taxable Value</td><td class="text-end">₹{{ "{:,.2f}".format(invoice.subtotal) }}</td></tr>
+                    {% if not invoice.is_igst %}
+                    <tr><td>Output CGST</td><td class="text-end">₹{{ "{:,.2f}".format(invoice.cgst_total) }}</td></tr>
+                    <tr><td>Output SGST</td><td class="text-end">₹{{ "{:,.2f}".format(invoice.sgst_total) }}</td></tr>
+                    {% else %}
+                    <tr><td>Output IGST</td><td class="text-end">₹{{ "{:,.2f}".format(invoice.igst_total) }}</td></tr>
+                    {% endif %}
+                    <tr><td>Rounded Off</td><td class="text-end">{{ invoice.round_off }}</td></tr>
+                    <tr class="table-success fw-bold">
+                        <td class="fs-5">Grand Total</td>
+                        <td class="text-end fs-5">₹{{ "{:,.2f}".format(invoice.grand_total) }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- HSN Breakup -->
+        {% if hsn_breakup %}
+        <div class="mt-3">
+            <strong>HSN-wise Tax Breakup</strong>
+            <table class="table table-bordered table-sm mt-1">
+                <thead class="table-secondary">
+                    <tr>
+                        <th>HSN/SAC</th>
+                        <th class="text-end">Taxable Value</th>
+                        {% if not invoice.is_igst %}
+                        <th class="text-end">CGST Rate</th>
+                        <th class="text-end">CGST Amt</th>
+                        <th class="text-end">SGST Rate</th>
+                        <th class="text-end">SGST Amt</th>
+                        {% else %}
+                        <th class="text-end">IGST Rate</th>
+                        <th class="text-end">IGST Amt</th>
+                        {% endif %}
+                        <th class="text-end">Total Tax</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in hsn_breakup %}
+                    <tr>
+                        <td>{{ row.hsn_code }}</td>
+                        <td class="text-end">₹{{ "{:,.2f}".format(row.taxable_value) }}</td>
+                        {% if not invoice.is_igst %}
+                        <td class="text-end">{{ row.cgst_rate }}%</td>
+                        <td class="text-end">₹{{ "{:,.2f}".format(row.cgst_amount) }}</td>
+                        <td class="text-end">{{ row.sgst_rate }}%</td>
+                        <td class="text-end">₹{{ "{:,.2f}".format(row.sgst_amount) }}</td>
+                        {% else %}
+                        <td class="text-end">{{ row.igst_rate }}%</td>
+                        <td class="text-end">₹{{ "{:,.2f}".format(row.igst_amount) }}</td>
+                        {% endif %}
+                        <td class="text-end fw-bold">₹{{ "{:,.2f}".format(row.total_tax) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <!-- Bank & Declaration -->
+        <div class="row mt-3 border-top pt-3">
+            <div class="col-md-7">
+                <strong>Company's Bank Details:</strong>
+                <table class="table table-sm table-borderless mb-0">
+                    <tr><td>A/c Holder's Name:</td><td>{{ settings.company_name }}</td></tr>
+                    <tr><td>Bank Name:</td><td>{{ settings.bank_name }}</td></tr>
+                    <tr><td>A/c No.:</td><td>{{ settings.bank_account }}</td></tr>
+                    <tr><td>Branch & IFS Code:</td><td>{{ settings.bank_branch }} & {{ settings.bank_ifsc }}</td></tr>
+                </table>
+                <small class="text-muted fst-italic">
+                    We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.
+                </small>
+            </div>
+            <div class="col-md-5 text-end">
+                <p class="mb-5">for <strong>{{ settings.company_name }}</strong></p>
+                <p class="mt-4 border-top pt-2">Authorised Signatory</p>
+            </div>
+        </div>
+        <div class="text-center small text-muted border-top pt-2">
+            SUBJECT TO KOLKATA JURISDICTION &nbsp;|&nbsp; This is a Computer Generated Invoice
+        </div>
+    </div>
+</div>
+{% endblock %}

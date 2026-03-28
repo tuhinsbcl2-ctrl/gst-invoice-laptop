@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}Expenses{% endblock %}
+{% block content %}
+<div class="row mb-3 align-items-center">
+    <div class="col"><h4><i class="bi bi-wallet2 me-2"></i>Expense Tracking</h4></div>
+    <div class="col-auto">
+        <a href="{{ url_for('expense.create_expense') }}" class="btn btn-success btn-sm">
+            <i class="bi bi-plus-circle me-1"></i>Add Expense
+        </a>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <div class="card text-bg-danger">
+            <div class="card-body py-2 text-center">
+                <div class="small text-white-50">Total Expenses</div>
+                <div class="fs-4 fw-bold">₹{{ "{:,.2f}".format(total) }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-sm table-hover mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Category</th>
+                    <th>Mode</th>
+                    <th class="text-end">Amount</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in expenses %}
+                <tr>
+                    <td>{{ e.date.strftime('%d-%b-%y') if e.date }}</td>
+                    <td>{{ e.description }}</td>
+                    <td>{{ e.category }}</td>
+                    <td><span class="badge {{ 'bg-success' if e.mode == 'Bank' else 'bg-secondary' }}">{{ e.mode }}</span></td>
+                    <td class="text-end">₹{{ "{:,.2f}".format(e.amount) }}</td>
+                    <td>
+                        <a href="{{ url_for('expense.edit_expense', eid=e.id) }}" class="btn btn-sm btn-outline-secondary py-0 px-1"><i class="bi bi-pencil"></i></a>
+                        <form method="POST" action="{{ url_for('expense.delete_expense', eid=e.id) }}" class="d-inline"
+                              onsubmit="return confirm('Delete?')">
+                            <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-1"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="text-center text-muted py-4">No expenses yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
