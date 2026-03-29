@@ -80,37 +80,28 @@
     </table>
 
     <!-- Items Table (no rate/amount columns) -->
-    <table class="challan-table">
-        <colgroup>
-            <col style="width:30px">
-            <col style="width:75px">
-            <col style="width:200px">
-            <col style="width:55px">
-            <col style="width:60px">
-            <col style="width:60px">
-            <col style="width:60px">
-        </colgroup>
+    <table style="table-layout:fixed; width:100%; border-collapse:collapse;">
         <thead>
             <tr>
-                <th class="text-center">Sl<br/>No.</th>
-                <th class="text-center">Catalog<br/>No.</th>
-                <th>Item Name</th>
-                <th class="text-center">Lot No</th>
-                <th class="text-center">Mfg Date</th>
-                <th class="text-center">Exp. Date</th>
-                <th class="text-center">Quantity</th>
+                <th width="5%" style="text-align:center; border:1px solid #000; padding:3px 2px; background:#e8e8e8; font-size:7.5pt; word-wrap:break-word;">S.No</th>
+                <th width="14%" style="text-align:center; border:1px solid #000; padding:3px 2px; background:#e8e8e8; font-size:7.5pt; word-wrap:break-word;">Cat. No.</th>
+                <th width="33%" style="text-align:left; border:1px solid #000; padding:3px 2px; background:#e8e8e8; font-size:7.5pt; word-wrap:break-word;">Item Name</th>
+                <th width="12%" style="text-align:center; border:1px solid #000; padding:3px 2px; background:#e8e8e8; font-size:7.5pt; word-wrap:break-word;">Lot No</th>
+                <th width="12%" style="text-align:center; border:1px solid #000; padding:3px 2px; background:#e8e8e8; font-size:7.5pt; word-wrap:break-word;">Mfg Date</th>
+                <th width="12%" style="text-align:center; border:1px solid #000; padding:3px 2px; background:#e8e8e8; font-size:7.5pt; word-wrap:break-word;">Exp Date</th>
+                <th width="12%" style="text-align:center; border:1px solid #000; padding:3px 2px; background:#e8e8e8; font-size:7.5pt; word-wrap:break-word;">Qty</th>
             </tr>
         </thead>
         <tbody>
             {% for item in invoice.items %}
             <tr>
-                <td class="text-center">{{ item.sl_no }}</td>
-                <td class="text-center">{{ item.catalog_no }}</td>
-                <td>{{ item.description }}</td>
-                <td class="text-center">{{ item.lot_no or '' }}</td>
-                <td class="text-center">{{ item.mfg_date or '' }}</td>
-                <td class="text-center">{{ item.exp_date or '' }}</td>
-                <td class="text-center">{{ item.quantity|int if item.quantity == item.quantity|int else item.quantity }} {{ item.unit }}</td>
+                <td width="5%" style="text-align:center; border:1px solid #000; padding:2px 3px; font-size:7.5pt; word-wrap:break-word;">{{ item.sl_no }}</td>
+                <td width="14%" style="text-align:center; border:1px solid #000; padding:2px 3px; font-size:7.5pt; word-wrap:break-word;">{{ item.catalog_no }}</td>
+                <td width="33%" style="border:1px solid #000; padding:2px 3px; font-size:7.5pt; word-wrap:break-word;">{{ item.description }}</td>
+                <td width="12%" style="text-align:center; border:1px solid #000; padding:2px 3px; font-size:7.5pt; word-wrap:break-word;">{{ item.lot_no or '' }}</td>
+                <td width="12%" style="text-align:center; border:1px solid #000; padding:2px 3px; font-size:7.5pt; word-wrap:break-word;">{{ item.mfg_date or '' }}</td>
+                <td width="12%" style="text-align:center; border:1px solid #000; padding:2px 3px; font-size:7.5pt; word-wrap:break-word;">{{ item.exp_date or '' }}</td>
+                <td width="12%" style="text-align:center; border:1px solid #000; padding:2px 3px; font-size:7.5pt; word-wrap:break-word;">{{ item.quantity|int if item.quantity == item.quantity|int else item.quantity }} {{ item.unit }}</td>
             </tr>
             {% endfor %}
         </tbody>
