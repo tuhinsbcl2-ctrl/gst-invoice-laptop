@@ -3,27 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <style>
-  @page { size: A4; margin: 12mm 10mm; }
-  body { font-family: Arial, sans-serif; font-size: 9pt; color: #000; }
-  .page { page-break-after: always; border: 1px solid #000; padding: 8px; position: relative; min-height: 270mm; }
-  .page:last-child { page-break-after: avoid; }
-  .copy-label { position: absolute; top: 6px; right: 8px; font-size: 8pt; font-weight: bold; color: #555; border: 1px solid #999; padding: 2px 6px; }
+  @page { size: A4; margin: 8mm 8mm; }
+  body { font-family: Arial, sans-serif; font-size: 8pt; color: #000; }
+  .page { page-break-after: always; border: 1px solid #000; padding: 5px; }
+  .copy-label { font-size: 8pt; font-weight: bold; color: #555; border: 1px solid #999; padding: 2px 6px; }
   .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 4px; }
-  .header h2 { margin: 0; font-size: 14pt; }
-  .header h3 { margin: 0; font-size: 11pt; }
-  .header p { margin: 1px 0; font-size: 8pt; }
+  .header h2 { margin: 0; font-size: 12pt; }
+  .header h3 { margin: 0; font-size: 10pt; }
+  .header p { margin: 1px 0; font-size: 7pt; }
   table { border-collapse: collapse; width: 100%; }
   th, td { border: 1px solid #000; padding: 2px 4px; }
-  th { background: #e8e8e8; font-size: 8pt; }
-  td { font-size: 8pt; }
+  th { background: #e8e8e8; font-size: 7.5pt; }
+  td { font-size: 7.5pt; word-wrap: break-word; overflow: hidden; }
   .italic { font-style: italic; color: #555; }
   .text-right { text-align: right; }
   .text-center { text-align: center; }
-  .grand-total { font-weight: bold; font-size: 10pt; }
-  .footer-section { margin-top: 6px; border-top: 1px solid #000; padding-top: 4px; }
+  .grand-total { font-weight: bold; font-size: 9pt; }
+  .footer-section { margin-top: 3px; border-top: 1px solid #000; padding-top: 4px; }
   .declaration { font-size: 7.5pt; font-style: italic; }
   .jurisdiction { text-align: center; font-size: 7.5pt; font-weight: bold; margin-top: 4px; }
-  .hsn-table th, .hsn-table td { font-size: 7.5pt; }
+  .hsn-table th, .hsn-table td { font-size: 7pt; }
 </style>
 </head>
 <body>
@@ -31,7 +30,12 @@
 <!-- ===== TAX INVOICE COPIES ===== -->
 {% for copy in invoice_copies %}
 <div class="page">
-    <div class="copy-label">{{ copy }}</div>
+    <table style="border-collapse:collapse; width:100%; margin-bottom:2px;">
+        <tr>
+            <td style="border:none; padding:0;">&nbsp;</td>
+            <td style="border:none; padding:0; text-align:right;"><span class="copy-label">{{ copy }}</span></td>
+        </tr>
+    </table>
     <div class="header">
         <h2>TAX INVOICE</h2>
         <h3>{{ settings.company_name }}</h3>
@@ -64,14 +68,14 @@
     <table>
         <thead>
             <tr>
-                <th style="width:25px" class="text-center">Sl No.</th>
-                <th>Description of Goods</th>
-                <th style="width:55px" class="text-center">HSN/SAC</th>
-                <th style="width:45px" class="text-center">GST Rate</th>
-                <th style="width:55px" class="text-center">Quantity</th>
-                <th style="width:60px" class="text-right">Rate</th>
-                <th style="width:30px" class="text-center">Per</th>
-                <th style="width:70px" class="text-right">Amount</th>
+                <th style="width:4%" class="text-center">Sl No.</th>
+                <th style="width:35%">Description of Goods</th>
+                <th style="width:9%" class="text-center">HSN/SAC</th>
+                <th style="width:7%" class="text-center">GST Rate</th>
+                <th style="width:10%" class="text-center">Quantity</th>
+                <th style="width:12%" class="text-right">Rate</th>
+                <th style="width:5%" class="text-center">Per</th>
+                <th style="width:18%" class="text-right">Amount</th>
             </tr>
         </thead>
         <tbody>
@@ -87,7 +91,6 @@
                 <td class="text-right">{{ "{:,.2f}".format(item.amount) }}</td>
             </tr>
             {% endfor %}
-            <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
         </tbody>
         <tfoot>
             <tr><td colspan="7" class="text-right"><strong>Taxable Value</strong></td><td class="text-right"><strong>{{ "{:,.2f}".format(invoice.subtotal) }}</strong></td></tr>
@@ -148,7 +151,7 @@
                     <span class="declaration">We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.</span>
                 </td>
                 <td style="border:none; text-align:right; vertical-align:bottom;">
-                    for <strong>{{ settings.company_name }}</strong><br><br><br>Authorised Signatory
+                    for <strong>{{ settings.company_name }}</strong><br><br>Authorised Signatory
                 </td>
             </tr>
         </table>
@@ -160,7 +163,12 @@
 <!-- ===== DELIVERY CHALLAN COPIES ===== -->
 {% for copy in challan_copies %}
 <div class="page">
-    <div class="copy-label">{{ copy }}</div>
+    <table style="border-collapse:collapse; width:100%; margin-bottom:2px;">
+        <tr>
+            <td style="border:none; padding:0;">&nbsp;</td>
+            <td style="border:none; padding:0; text-align:right;"><span class="copy-label">{{ copy }}</span></td>
+        </tr>
+    </table>
     <div class="header">
         <h2>DELIVERY CHALLAN</h2>
         <h3>{{ settings.company_name }}</h3>
@@ -186,13 +194,13 @@
     <table>
         <thead>
             <tr>
-                <th style="width:25px" class="text-center">Sl No.</th>
-                <th style="width:80px" class="text-center">Catalog No.</th>
-                <th>Item Name</th>
-                <th style="width:70px" class="text-center">Lot No</th>
-                <th style="width:65px" class="text-center">Mfg Date</th>
-                <th style="width:65px" class="text-center">Exp. Date</th>
-                <th style="width:60px" class="text-center">Quantity</th>
+                <th style="width:4%" class="text-center">Sl No.</th>
+                <th style="width:14%" class="text-center">Catalog No.</th>
+                <th style="width:35%">Item Name</th>
+                <th style="width:12%" class="text-center">Lot No</th>
+                <th style="width:12%" class="text-center">Mfg Date</th>
+                <th style="width:12%" class="text-center">Exp. Date</th>
+                <th style="width:11%" class="text-center">Quantity</th>
             </tr>
         </thead>
         <tbody>
@@ -211,7 +219,7 @@
     </table>
 
     <div class="footer-section" style="text-align:right;">
-        for <strong>{{ settings.company_name }}</strong><br><br><br>Authorised Signatory
+        for <strong>{{ settings.company_name }}</strong><br><br>Authorised Signatory
     </div>
     <div class="jurisdiction">SUBJECT TO KOLKATA JURISDICTION</div>
 </div>
