@@ -28,7 +28,7 @@ def _html_to_pdf(html_content):
 
 
 def generate_invoice_pdf(invoice):
-    """Generate combined PDF (3 invoice copies) for a Tax Invoice."""
+    """Generate combined PDF (4 invoice copies) for a Tax Invoice."""
     from app.models import CompanySettings
     settings = CompanySettings.query.first()
     hsn_breakup = get_hsn_breakup(
@@ -39,6 +39,7 @@ def generate_invoice_pdf(invoice):
         'Original for Recipient',
         'Duplicate for Transporter',
         'Triplicate for Supplier',
+        'Office Copy',
     ]
     html_content = render_template(
         'invoice/pdf_template.html',
@@ -82,7 +83,7 @@ def generate_challan_pdf(invoice):
 
 
 def generate_combined_pdf(invoice):
-    """Generate 7-page combined PDF (3 invoice + 4 challan)."""
+    """Generate 8-page combined PDF (4 invoice + 4 challan)."""
     from app.models import CompanySettings
     settings = CompanySettings.query.first()
     hsn_breakup = get_hsn_breakup(
@@ -93,6 +94,7 @@ def generate_combined_pdf(invoice):
         'Original for Recipient',
         'Duplicate for Transporter',
         'Triplicate for Supplier',
+        'Office Copy',
     ]
     challan_copies = [
         'Original for Recipient',
