@@ -49,8 +49,8 @@
     <table style="border-collapse:collapse; width:100%; margin-bottom:4px;">
         <tr>
             <td style="border:none; padding:0;">&nbsp;</td>
-            <td style="border:none; padding:10px 6px; text-align:right;">
-                <span style="font-size:10pt; font-weight:bold; font-style:italic; color:#333; border:1px solid #666; padding:4px 10px;">{{ copy }}</span>
+            <td style="border:none; padding:14px 8px 8px 6px; text-align:right;">
+                <span style="font-size:11pt; font-weight:bold; font-style:italic; color:#333; border:1px solid #666; padding:4px 10px;">{{ copy }}</span>
             </td>
         </tr>
     </table>
@@ -184,8 +184,8 @@
     <table style="border-collapse:collapse; width:100%; margin-bottom:4px;">
         <tr>
             <td style="border:none; padding:0;">&nbsp;</td>
-            <td style="border:none; padding:10px 6px; text-align:right;">
-                <span style="font-size:10pt; font-weight:bold; font-style:italic; color:#333; border:1px solid #666; padding:4px 10px;">{{ copy }}</span>
+            <td style="border:none; padding:14px 8px 8px 6px; text-align:right;">
+                <span style="font-size:11pt; font-weight:bold; font-style:italic; color:#333; border:1px solid #666; padding:4px 10px;">{{ copy }}</span>
             </td>
         </tr>
     </table>
@@ -215,24 +215,24 @@
         <thead>
             <tr>
                 <th width="5%" style="text-align:center; border:1px solid #000; padding:3px 2px; background:#e8e8e8; font-size:7.5pt;">Sl No.</th>
-                <th width="12%" style="text-align:center; border:1px solid #000; padding:3px 2px; background:#e8e8e8; font-size:7.5pt;">Catalog No.</th>
-                <th width="31%" style="text-align:left; border:1px solid #000; padding:3px 2px; background:#e8e8e8; font-size:7.5pt;">Item Name</th>
-                <th width="14%" style="text-align:center; border:1px solid #000; padding:3px 2px; background:#e8e8e8; font-size:7.5pt;">Lot No</th>
-                <th width="14%" style="text-align:center; border:1px solid #000; padding:3px 2px; background:#e8e8e8; font-size:7.5pt;">Mfg Date</th>
-                <th width="14%" style="text-align:center; border:1px solid #000; padding:3px 2px; background:#e8e8e8; font-size:7.5pt;">Exp. Date</th>
-                <th width="10%" style="text-align:center; border:1px solid #000; padding:3px 2px; background:#e8e8e8; font-size:7.5pt;">Quantity</th>
+                <th width="10%" style="text-align:center; border:1px solid #000; padding:3px 2px; background:#e8e8e8; font-size:7.5pt;">Catalog No.</th>
+                <th width="25%" style="text-align:left; border:1px solid #000; padding:3px 2px; background:#e8e8e8; font-size:7.5pt;">Item Name</th>
+                <th width="15%" style="text-align:center; border:1px solid #000; padding:3px 2px; background:#e8e8e8; font-size:7.5pt;">Lot No</th>
+                <th width="15%" style="text-align:center; border:1px solid #000; padding:3px 2px; background:#e8e8e8; font-size:7.5pt; white-space:nowrap;">Mfg Date</th>
+                <th width="15%" style="text-align:center; border:1px solid #000; padding:3px 2px; background:#e8e8e8; font-size:7.5pt; white-space:nowrap;">Exp. Date</th>
+                <th width="15%" style="text-align:center; border:1px solid #000; padding:3px 2px; background:#e8e8e8; font-size:7.5pt;">Quantity</th>
             </tr>
         </thead>
         <tbody>
             {% for item in invoice.items %}
             <tr>
                 <td width="5%" style="text-align:center; border:1px solid #000; padding:2px 3px; font-size:7.5pt;">{{ item.sl_no }}</td>
-                <td width="12%" style="text-align:center; border:1px solid #000; padding:2px 3px; font-size:7.5pt;">{{ item.catalog_no }}</td>
-                <td width="31%" style="border:1px solid #000; padding:2px 3px; font-size:7.5pt;">{{ item.description }}</td>
-                <td width="14%" style="text-align:center; border:1px solid #000; padding:2px 3px; font-size:7.5pt;">{{ item.lot_no or '' }}</td>
-                <td width="14%" style="text-align:center; border:1px solid #000; padding:2px 3px; font-size:7.5pt;">{{ item.mfg_date or '' }}</td>
-                <td width="14%" style="text-align:center; border:1px solid #000; padding:2px 3px; font-size:7.5pt;">{{ item.exp_date or '' }}</td>
-                <td width="10%" style="text-align:center; border:1px solid #000; padding:2px 3px; font-size:7.5pt;">{{ item.quantity|int if item.quantity == item.quantity|int else item.quantity }} {{ item.unit }}</td>
+                <td width="10%" style="text-align:center; border:1px solid #000; padding:2px 3px; font-size:7.5pt;">{{ item.catalog_no }}</td>
+                <td width="25%" style="border:1px solid #000; padding:2px 3px; font-size:7.5pt;">{{ item.description }}</td>
+                <td width="15%" style="text-align:center; border:1px solid #000; padding:2px 3px; font-size:7.5pt;">{{ item.lot_no or '' }}</td>
+                <td width="15%" style="text-align:center; border:1px solid #000; padding:2px 3px; font-size:7.5pt;">{{ item.mfg_date or '' }}</td>
+                <td width="15%" style="text-align:center; border:1px solid #000; padding:2px 3px; font-size:7.5pt;">{{ item.exp_date or '' }}</td>
+                <td width="15%" style="text-align:center; border:1px solid #000; padding:2px 3px; font-size:7.5pt;">{{ item.quantity|int if item.quantity == item.quantity|int else item.quantity }} {{ item.unit }}</td>
             </tr>
             {% endfor %}
         </tbody>
