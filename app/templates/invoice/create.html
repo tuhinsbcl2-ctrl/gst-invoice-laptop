@@ -330,7 +330,7 @@
                                 <td><input type="number" name="quantity[]" class="form-control form-control-sm input-editable qty" step="0.01" value="{{ item.quantity }}" onchange="calcRow(this)"></td>
                                 <td>
                                     <select name="unit[]" class="form-select form-select-sm input-editable">
-                                        {% for u in ['Pcs','Nos','Kg','Ltr','Box','Set','Pair'] %}
+                                        {% for u in ['Pcs','Nos','Kg','Ltr','Box','Set','Pair','Dozen','Pack','Mtr'] %}
                                         <option value="{{ u }}" {% if item.unit == u %}selected{% endif %}>{{ u }}</option>
                                         {% endfor %}
                                     </select>
@@ -425,6 +425,7 @@
         <select name="unit[]" class="form-select form-select-sm input-editable">
             <option>Pcs</option><option>Nos</option><option>Kg</option>
             <option>Ltr</option><option>Box</option><option>Set</option><option>Pair</option>
+            <option>Dozen</option><option>Pack</option><option>Mtr</option>
         </select>
     </td>
     <td><input type="number" name="unit_price[]" class="form-control form-control-sm input-editable price" step="0.01" value="0" onchange="calcRow(this)"></td>
