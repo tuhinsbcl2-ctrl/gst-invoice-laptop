@@ -3,8 +3,7 @@ REM build_exe.bat — Double-click to build the standalone Windows .exe
 REM
 REM Requirements:
 REM   Python must be installed and in PATH
-REM   pip install -r requirements.txt
-REM   pip install pyinstaller
+REM   pip install -r requirements-dev.txt
 
 title GST Billing App - Build
 
@@ -23,11 +22,11 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-REM Install/upgrade PyInstaller
-echo [INFO] Installing/upgrading PyInstaller...
-pip install --quiet --upgrade pyinstaller
+REM Install all dependencies including PyInstaller
+echo [INFO] Installing dependencies (including PyInstaller)...
+python -m pip install --quiet -r requirements-dev.txt
 if %errorlevel% neq 0 (
-    echo [ERROR] Could not install PyInstaller.
+    echo [ERROR] Could not install dependencies.
     pause
     exit /b 1
 )

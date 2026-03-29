@@ -15,8 +15,7 @@ The build machine **must** have Python installed.  The target PCs do **not**.
 2. **Install all dependencies** (open Command Prompt in the project folder):
 
    ```bat
-   pip install -r requirements.txt
-   pip install pyinstaller
+   python -m pip install -r requirements-dev.txt
    ```
 
 3. *(Optional but recommended)* Work inside a virtual environment:
@@ -24,8 +23,7 @@ The build machine **must** have Python installed.  The target PCs do **not**.
    ```bat
    python -m venv venv
    venv\Scripts\activate
-   pip install -r requirements.txt
-   pip install pyinstaller
+   python -m pip install -r requirements-dev.txt
    ```
 
 ---
@@ -105,26 +103,11 @@ To move data to a new PC (or a new build):
 
 | Problem | Solution |
 |---------|----------|
-| Build fails with "module not found" | Run `pip install -r requirements.txt` again, then rebuild |
+| Build fails with "module not found" | Run `python -m pip install -r requirements-dev.txt` again, then rebuild |
 | Antivirus blocks the .exe | Add `dist\GSTBillingApp\` as an exception in your antivirus |
 | Browser does not open automatically | Open `http://localhost:5000` manually while the console window is open |
 | Port 5000 already in use | Close other apps using port 5000, then try again |
-| WeasyPrint PDF errors on target PC | WeasyPrint requires GTK/Cairo native libraries; install the [GTK3 runtime for Windows](https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases) on the target PC |
 | App data is lost after updating exe | Always preserve the `data\gst_billing.db` file across updates |
-
----
-
-## Notes on WeasyPrint
-
-WeasyPrint depends on native system libraries (GTK, Cairo, Pango) that cannot
-be bundled inside the exe.  On a **fresh Windows PC** without these libraries
-PDF generation may fail.
-
-**Recommended fix:** Install the GTK3 runtime on the target PC:  
-<https://github.com/tschoonj/GTK-for-Windows-Runtime-Environment-Installer/releases>
-
-Alternatively, the PDF generation code can be replaced with a pure-Python
-library such as `reportlab` or `fpdf2` that has no native dependencies.
 
 ---
 

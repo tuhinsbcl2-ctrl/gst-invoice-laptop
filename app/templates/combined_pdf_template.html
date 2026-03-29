@@ -98,7 +98,7 @@
             <tr><td colspan="7" class="text-right">Output IGST</td><td class="text-right">{{ "{:,.2f}".format(invoice.igst_total) }}</td></tr>
             {% endif %}
             <tr><td colspan="7" class="text-right">Rounded Off</td><td class="text-right">{{ invoice.round_off }}</td></tr>
-            <tr><td colspan="7" class="text-right grand-total">Grand Total</td><td class="text-right grand-total">₹{{ "{:,.2f}".format(invoice.grand_total) }}</td></tr>
+            <tr><td colspan="7" class="text-right grand-total">Grand Total</td><td class="text-right grand-total">&#x20B9;{{ "{:,.2f}".format(invoice.grand_total) }}</td></tr>
         </tfoot>
     </table>
 

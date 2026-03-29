@@ -6,7 +6,7 @@
 # Output:         dist/GSTBillingApp/GSTBillingApp.exe
 #
 # NOTE: Run this on a Windows machine that has Python and all
-# requirements installed (pip install -r requirements.txt pyinstaller).
+# requirements installed (pip install -r requirements-dev.txt).
 
 import os
 from PyInstaller.utils.hooks import collect_submodules, collect_data_files
@@ -29,7 +29,11 @@ hidden_imports = (
     collect_submodules('openpyxl') +
     collect_submodules('PIL') +
     collect_submodules('lxml') +
-    collect_submodules('weasyprint') +
+    collect_submodules('xhtml2pdf') +
+    collect_submodules('reportlab') +
+    collect_submodules('html5lib') +
+    collect_submodules('arabic_reshaper') +
+    collect_submodules('bidi') +
     [
         'sqlite3',
         'email.mime.text',
@@ -48,24 +52,19 @@ datas = [
     (os.path.join('app', 'static'),    os.path.join('app', 'static')),
 ]
 
-# Include WeasyPrint / fonttools data files if present
+# Include xhtml2pdf / reportlab data files if present
 try:
-    datas += collect_data_files('weasyprint')
+    datas += collect_data_files('xhtml2pdf')
 except Exception:
     pass
 
 try:
-    datas += collect_data_files('fonttools')
+    datas += collect_data_files('reportlab')
 except Exception:
     pass
 
 try:
-    datas += collect_data_files('tinycss2')
-except Exception:
-    pass
-
-try:
-    datas += collect_data_files('cssselect2')
+    datas += collect_data_files('html5lib')
 except Exception:
     pass
 
