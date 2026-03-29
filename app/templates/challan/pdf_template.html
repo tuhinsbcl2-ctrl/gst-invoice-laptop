@@ -13,8 +13,24 @@
   .header p { margin: 1px 0; font-size: 7pt; }
   table { border-collapse: collapse; width: 100%; }
   th, td { border: 1px solid #000; padding: 2px 4px; }
-  th { background: #e8e8e8; font-size: 7.5pt; white-space: nowrap; }
+  th { background: #e8e8e8; font-size: 7.5pt; }
   td { font-size: 7.5pt; word-wrap: break-word; overflow: hidden; }
+  .challan-table { table-layout: fixed; width: 100%; }
+  .challan-table th {
+    background: #e8e8e8;
+    font-size: 7.5pt;
+    padding: 3px 2px;
+    text-align: center;
+    vertical-align: middle;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  .challan-table td {
+    font-size: 7.5pt;
+    padding: 2px 4px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
   .italic { font-style: italic; color: #555; }
   .text-right { text-align: right; }
   .text-center { text-align: center; }
@@ -64,16 +80,25 @@
     </table>
 
     <!-- Items Table (no rate/amount columns) -->
-    <table>
+    <table class="challan-table">
+        <colgroup>
+            <col style="width:30px">
+            <col style="width:80px">
+            <col style="width:180px">
+            <col style="width:60px">
+            <col style="width:65px">
+            <col style="width:65px">
+            <col style="width:60px">
+        </colgroup>
         <thead>
             <tr>
-                <th style="width:5%" class="text-center">Sl No.</th>
-                <th style="width:12%" class="text-center">Catalog No.</th>
-                <th style="width:38%">Item Name</th>
-                <th style="width:10%" class="text-center">Lot No</th>
-                <th style="width:12%" class="text-center">Mfg Date</th>
-                <th style="width:12%" class="text-center">Exp. Date</th>
-                <th style="width:11%" class="text-center">Quantity</th>
+                <th class="text-center">Sl<br/>No.</th>
+                <th class="text-center">Catalog<br/>No.</th>
+                <th>Item Name</th>
+                <th class="text-center">Lot No</th>
+                <th class="text-center">Mfg Date</th>
+                <th class="text-center">Exp. Date</th>
+                <th class="text-center">Quantity</th>
             </tr>
         </thead>
         <tbody>
