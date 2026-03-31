@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}Import Bank Statement{% endblock %}
+{% block content %}
+<div class="row mb-3 align-items-center">
+    <div class="col"><h4><i class="bi bi-upload me-2"></i>Import Bank Statement</h4></div>
+    <div class="col-auto"><a href="{{ url_for('bank.list_transactions') }}" class="btn btn-outline-secondary btn-sm">Back</a></div>
+</div>
+
+<div class="card" style="max-width:600px;">
+    <div class="card-body">
+        <form method="POST" enctype="multipart/form-data">
+            <div class="row g-3">
+                <div class="col-12">
+                    <div class="alert alert-info small py-2">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Supported formats: CSV or Excel (.xlsx). The file should have columns for
+                        <strong>Date</strong>, <strong>Description/Narration</strong>,
+                        <strong>Debit/Withdrawal</strong>, <strong>Credit/Deposit</strong>, and
+                        optionally <strong>Balance</strong> and <strong>Reference No</strong>.
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-bold">Bank Name</label>
+                    <input type="text" name="bank_name" class="form-control" required
+                           placeholder="e.g. Punjab National Bank">
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-bold">Statement File (CSV or XLSX)</label>
+                    <input type="file" name="statement_file" class="form-control" required
+                           accept=".csv,.xlsx,.xls">
+                </div>
+                <div class="col-12">
+                    <div class="card bg-light border-0">
+                        <div class="card-body py-2">
+                            <div class="fw-bold small mb-1">Accepted column names:</div>
+                            <div class="small text-muted">
+                                <strong>Date:</strong> date, txn date, transaction date, value date<br>
+                                <strong>Description:</strong> description, narration, particulars<br>
+                                <strong>Debit:</strong> debit, withdrawal, dr<br>
+                                <strong>Credit:</strong> credit, deposit, cr<br>
+                                <strong>Balance:</strong> balance, closing balance<br>
+                                <strong>Reference:</strong> ref, reference, chq/ref no
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 text-end">
+                    <a href="{{ url_for('bank.list_transactions') }}" class="btn btn-secondary me-2">Cancel</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-upload me-1"></i>Import
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

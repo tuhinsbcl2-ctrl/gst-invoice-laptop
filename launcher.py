@@ -47,7 +47,7 @@ def _first_run_setup():
     print("  [INFO] First run detected — initialising database...")
     try:
         from app import create_app, db as _db
-        from app.models import CompanySettings, InvoiceSequence
+        from app.models import CompanySettings, InvoiceSequence, AccountHead
 
         _app = create_app()
         with _app.app_context():
@@ -76,6 +76,37 @@ def _first_run_setup():
             fy = get_financial_year()
             if not InvoiceSequence.query.filter_by(prefix='NE', financial_year=fy).first():
                 _db.session.add(InvoiceSequence(prefix='NE', financial_year=fy, last_serial=0))
+                _db.session.commit()
+
+            if not InvoiceSequence.query.filter_by(prefix='PV', financial_year=fy).first():
+                _db.session.add(InvoiceSequence(prefix='PV', financial_year=fy, last_serial=0))
+                _db.session.commit()
+
+            # Seed default account heads
+            if not AccountHead.query.filter_by(is_default=True).first():
+                default_accounts = [
+                    ('Sales', 'Direct Income'), ('Service Income', 'Direct Income'),
+                    ('Interest Received', 'Indirect Income'), ('Other Income', 'Indirect Income'),
+                    ('Purchases', 'Direct Expense'), ('Freight Inward', 'Direct Expense'),
+                    ('Rent', 'Indirect Expense'), ('Electricity', 'Indirect Expense'),
+                    ('Telephone', 'Indirect Expense'), ('Office Supplies', 'Indirect Expense'),
+                    ('Travelling', 'Indirect Expense'), ('Printing & Stationery', 'Indirect Expense'),
+                    ('Miscellaneous Expenses', 'Indirect Expense'),
+                    ('Furniture & Fixtures', 'Fixed Assets'), ('Computer & Peripherals', 'Fixed Assets'),
+                    ('Office Equipment', 'Fixed Assets'), ('Vehicles', 'Fixed Assets'),
+                    ('Cash in Hand', 'Current Assets'), ('Bank Accounts (PNB)', 'Current Assets'),
+                    ('Stock in Trade', 'Current Assets'), ('Sundry Debtors', 'Current Assets'),
+                    ('Prepaid Expenses', 'Current Assets'),
+                    ('Sundry Creditors', 'Current Liabilities'),
+                    ('GST Payable (CGST)', 'Current Liabilities'),
+                    ('GST Payable (SGST)', 'Current Liabilities'),
+                    ('GST Payable (IGST)', 'Current Liabilities'),
+                    ('TDS Payable', 'Current Liabilities'),
+                    ('Outstanding Expenses', 'Current Liabilities'),
+                    ("Owner's Capital", 'Capital Account'), ("Owner's Drawings", 'Capital Account'),
+                ]
+                for name, acc_type in default_accounts:
+                    _db.session.add(AccountHead(name=name, account_type=acc_type, is_default=True))
                 _db.session.commit()
 
         print("  [OK]   Database initialised.")

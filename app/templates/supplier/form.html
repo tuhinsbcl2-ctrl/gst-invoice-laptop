@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Edit' if edit_mode else 'Add' }} Supplier{% endblock %}
+{% block content %}
+<div class="row mb-3 align-items-center">
+    <div class="col"><h4><i class="bi bi-building me-2"></i>{{ 'Edit' if edit_mode else 'Add' }} Supplier</h4></div>
+    <div class="col-auto"><a href="{{ url_for('supplier.list_suppliers') }}" class="btn btn-outline-secondary btn-sm">Back</a></div>
+</div>
+<div class="card" style="max-width:700px;">
+    <div class="card-body">
+        <form method="POST">
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="form-label fw-bold">Supplier Name *</label>
+                    <input type="text" name="name" class="form-control" required
+                           value="{{ supplier.name if edit_mode else '' }}">
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-bold">Address</label>
+                    <textarea name="address" class="form-control" rows="2">{{ supplier.address if edit_mode else '' }}</textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">GSTIN</label>
+                    <input type="text" name="gstin" class="form-control" maxlength="15"
+                           value="{{ supplier.gstin if edit_mode else '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">PAN</label>
+                    <input type="text" name="pan" class="form-control" maxlength="10"
+                           value="{{ supplier.pan if edit_mode else '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">State</label>
+                    <select name="state_name" class="form-select"
+                            onchange="document.querySelector('[name=state_code]').value=this.options[this.selectedIndex].dataset.code">
+                        <option value="">-- Select State --</option>
+                        {% for code, name in states %}
+                        <option value="{{ name }}" data-code="{{ code }}"
+                            {% if edit_mode and supplier.state_name == name %}selected{% endif %}>
+                            {{ code }} – {{ name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">State Code</label>
+                    <input type="text" name="state_code" class="form-control" maxlength="5"
+                           value="{{ supplier.state_code if edit_mode else '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Phone</label>
+                    <input type="text" name="phone" class="form-control"
+                           value="{{ supplier.phone if edit_mode else '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Email</label>
+                    <input type="email" name="email" class="form-control"
+                           value="{{ supplier.email if edit_mode else '' }}">
+                </div>
+                <div class="col-12 text-end">
+                    <a href="{{ url_for('supplier.list_suppliers') }}" class="btn btn-secondary me-2">Cancel</a>
+                    <button type="submit" class="btn btn-primary">
+                        {{ 'Update' if edit_mode else 'Save' }} Supplier
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Edit' if edit_mode else 'Add' }} Account Head{% endblock %}
+{% block content %}
+<div class="row mb-3 align-items-center">
+    <div class="col"><h4><i class="bi bi-journal-text me-2"></i>{{ 'Edit' if edit_mode else 'Add' }} Account Head</h4></div>
+    <div class="col-auto"><a href="{{ url_for('accounts.list_accounts') }}" class="btn btn-outline-secondary btn-sm">Back</a></div>
+</div>
+<div class="card" style="max-width:600px;">
+    <div class="card-body">
+        <form method="POST">
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="form-label fw-bold">Account Name</label>
+                    <input type="text" name="name" class="form-control" required
+                           value="{{ account.name if edit_mode else '' }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Account Type</label>
+                    <select name="account_type" class="form-select" required>
+                        <option value="">-- Select Type --</option>
+                        {% for t in account_types %}
+                        <option value="{{ t }}"
+                            {% if edit_mode and account.account_type == t %}selected{% endif %}>
+                            {{ t }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Parent Account (optional)</label>
+                    <select name="parent_id" class="form-select">
+                        <option value="">-- None --</option>
+                        {% for a in all_accounts %}
+                        <option value="{{ a.id }}"
+                            {% if edit_mode and account.parent_id == a.id %}selected{% endif %}>
+                            {{ a.name }} ({{ a.account_type }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-bold">Description</label>
+                    <input type="text" name="description" class="form-control"
+                           value="{{ account.description if edit_mode else '' }}">
+                </div>
+                <div class="col-12 text-end">
+                    <a href="{{ url_for('accounts.list_accounts') }}" class="btn btn-secondary me-2">Cancel</a>
+                    <button type="submit" class="btn btn-primary">
+                        {{ 'Update' if edit_mode else 'Save' }} Account Head
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

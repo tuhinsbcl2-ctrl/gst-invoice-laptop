@@ -34,6 +34,10 @@ def create_app(config_class=Config):
     from app.routes.reports import reports_bp
     from app.routes.settings import settings_bp
     from app.routes.main import main_bp
+    from app.routes.accounts import accounts_bp
+    from app.routes.supplier import supplier_bp
+    from app.routes.purchase import purchase_bp
+    from app.routes.bank import bank_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(invoice_bp, url_prefix='/invoice')
@@ -43,6 +47,10 @@ def create_app(config_class=Config):
     app.register_blueprint(expense_bp, url_prefix='/expense')
     app.register_blueprint(reports_bp, url_prefix='/reports')
     app.register_blueprint(settings_bp, url_prefix='/settings')
+    app.register_blueprint(accounts_bp, url_prefix='/accounts')
+    app.register_blueprint(supplier_bp, url_prefix='/supplier')
+    app.register_blueprint(purchase_bp, url_prefix='/purchase')
+    app.register_blueprint(bank_bp, url_prefix='/bank')
 
     with app.app_context():
         db.create_all()

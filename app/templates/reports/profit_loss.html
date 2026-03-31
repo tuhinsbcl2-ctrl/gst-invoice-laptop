@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% block title %}Profit & Loss Statement{% endblock %}
+{% block content %}
+<div class="row mb-3 align-items-center">
+    <div class="col"><h4><i class="bi bi-graph-up me-2"></i>Profit &amp; Loss Statement</h4></div>
+    <div class="col-auto">
+        <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+            <i class="bi bi-printer me-1"></i>Print
+        </button>
+    </div>
+</div>
+
+<!-- Date Filter -->
+<div class="card mb-3 no-print">
+    <div class="card-body py-2">
+        <form class="row g-2 align-items-end" method="GET">
+            <div class="col-auto">
+                <label class="form-label small mb-1">From</label>
+                <input type="date" name="date_from" class="form-control form-control-sm"
+                       value="{{ date_from.strftime('%Y-%m-%d') }}">
+            </div>
+            <div class="col-auto">
+                <label class="form-label small mb-1">To</label>
+                <input type="date" name="date_to" class="form-control form-control-sm"
+                       value="{{ date_to.strftime('%Y-%m-%d') }}">
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- P&L Statement -->
+<div class="card">
+    <div class="card-header text-center py-2">
+        <div class="fw-bold">NIBRITY ENTERPRISE</div>
+        <div class="small">Profit &amp; Loss Account</div>
+        <div class="small text-muted">For the period {{ date_from.strftime('%d %b %Y') }} to {{ date_to.strftime('%d %b %Y') }}</div>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-sm table-bordered mb-0">
+            <thead class="table-secondary">
+                <tr>
+                    <th colspan="2">Particulars</th>
+                    <th class="text-end" style="width:150px">Amount (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Income -->
+                <tr class="table-light">
+                    <td colspan="3" class="fw-bold">Income</td>
+                </tr>
+                <tr>
+                    <td style="width:30px"></td>
+                    <td>Sales / Service Income ({{ invoices | length }} invoices)</td>
+                    <td class="text-end">{{ "{:,.2f}".format(total_income) }}</td>
+                </tr>
+                <tr class="table-primary">
+                    <td colspan="2" class="fw-bold text-end">Total Income (A)</td>
+                    <td class="text-end fw-bold">{{ "{:,.2f}".format(total_income) }}</td>
+                </tr>
+
+                <!-- Direct Expenses -->
+                <tr class="table-light">
+                    <td colspan="3" class="fw-bold">Less: Direct Expenses</td>
+                </tr>
+                {% if regular_pvs %}
+                <tr>
+                    <td></td>
+                    <td>Purchases ({{ regular_pvs | length }} purchase vouchers)</td>
+                    <td class="text-end">{{ "{:,.2f}".format(purchase_cost) }}</td>
+                </tr>
+                {% endif %}
+                {% for e in direct_expenses_list %}
+                <tr>
+                    <td></td>
+                    <td>{{ e.description or e.category or 'Expense' }}
+                        {% if e.account_head %}<small class="text-muted">({{ e.account_head.name }})</small>{% endif %}
+                    </td>
+                    <td class="text-end">{{ "{:,.2f}".format(e.amount) }}</td>
+                </tr>
+                {% endfor %}
+                <tr class="table-warning">
+                    <td colspan="2" class="fw-bold text-end">Total Direct Expenses (B)</td>
+                    <td class="text-end fw-bold">{{ "{:,.2f}".format(direct_exp_total) }}</td>
+                </tr>
+
+                <!-- Gross Profit -->
+                <tr class="{{ 'table-success' if gross_profit >= 0 else 'table-danger' }}">
+                    <td colspan="2" class="fw-bold text-end">Gross Profit (A - B)</td>
+                    <td class="text-end fw-bold">{{ "{:,.2f}".format(gross_profit) }}</td>
+                </tr>
+
+                <!-- Indirect Expenses -->
+                <tr class="table-light">
+                    <td colspan="3" class="fw-bold">Less: Indirect Expenses</td>
+                </tr>
+                {% for e in indirect_expenses_list %}
+                <tr>
+                    <td></td>
+                    <td>{{ e.description or e.category or 'Expense' }}
+                        {% if e.account_head %}<small class="text-muted">({{ e.account_head.name }})</small>{% endif %}
+                    </td>
+                    <td class="text-end">{{ "{:,.2f}".format(e.amount) }}</td>
+                </tr>
+                {% endfor %}
+                {% for pv in expense_pvs %}
+                <tr>
+                    <td></td>
+                    <td>{{ pv.voucher_no }} – {{ pv.supplier_name or 'Expense' }}
+                        {% if pv.account_head %}<small class="text-muted">({{ pv.account_head.name }})</small>{% endif %}
+                    </td>
+                    <td class="text-end">{{ "{:,.2f}".format(pv.grand_total) }}</td>
+                </tr>
+                {% endfor %}
+                {% if not indirect_expenses_list and not expense_pvs %}
+                <tr>
+                    <td></td>
+                    <td class="text-muted">No indirect expenses</td>
+                    <td class="text-end">0.00</td>
+                </tr>
+                {% endif %}
+                <tr class="table-warning">
+                    <td colspan="2" class="fw-bold text-end">Total Indirect Expenses (C)</td>
+                    <td class="text-end fw-bold">{{ "{:,.2f}".format(indirect_exp_total) }}</td>
+                </tr>
+
+                <!-- Net Profit -->
+                <tr class="{{ 'table-success' if net_profit >= 0 else 'table-danger' }}">
+                    <td colspan="2" class="fw-bold fs-5 text-end">
+                        {{ 'Net Profit' if net_profit >= 0 else 'Net Loss' }} (A - B - C)
+                    </td>
+                    <td class="text-end fw-bold fs-5">₹{{ "{:,.2f}".format(net_profit|abs) }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+@media print {
+    .no-print { display: none !important; }
+    .navbar, footer, .alert { display: none !important; }
+    .card { border: 1px solid #ccc !important; }
+}
+</style>
+{% endblock %}

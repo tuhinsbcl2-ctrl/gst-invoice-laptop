@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% block title %}Categorise Transaction{% endblock %}
+{% block content %}
+<div class="row mb-3 align-items-center">
+    <div class="col"><h4><i class="bi bi-tag me-2"></i>Categorise Transaction</h4></div>
+    <div class="col-auto"><a href="{{ url_for('bank.list_transactions') }}" class="btn btn-outline-secondary btn-sm">Back</a></div>
+</div>
+
+<!-- Transaction details -->
+<div class="card mb-3 border-primary">
+    <div class="card-header py-2 bg-primary text-white fw-bold small">Transaction Details</div>
+    <div class="card-body row g-2">
+        <div class="col-md-3">
+            <div class="small text-muted">Date</div>
+            <div>{{ txn.date.strftime('%d-%b-%Y') if txn.date }}</div>
+        </div>
+        <div class="col-md-6">
+            <div class="small text-muted">Description</div>
+            <div>{{ txn.description or '–' }}</div>
+        </div>
+        <div class="col-md-3">
+            <div class="small text-muted">Bank</div>
+            <div>{{ txn.bank_name or '–' }}</div>
+        </div>
+        <div class="col-md-3">
+            <div class="small text-muted">Debit (Out)</div>
+            <div class="fw-bold text-danger">{% if txn.debit > 0 %}₹{{ "{:,.2f}".format(txn.debit) }}{% else %}–{% endif %}</div>
+        </div>
+        <div class="col-md-3">
+            <div class="small text-muted">Credit (In)</div>
+            <div class="fw-bold text-success">{% if txn.credit > 0 %}₹{{ "{:,.2f}".format(txn.credit) }}{% else %}–{% endif %}</div>
+        </div>
+        <div class="col-md-3">
+            <div class="small text-muted">Balance</div>
+            <div>₹{{ "{:,.2f}".format(txn.balance) }}</div>
+        </div>
+        <div class="col-md-3">
+            <div class="small text-muted">Reference</div>
+            <div>{{ txn.reference_no or '–' }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="card" style="max-width:700px;">
+    <div class="card-body">
+        <form method="POST">
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="form-label fw-bold">Category</label>
+                    <input type="text" name="category" class="form-control"
+                           value="{{ txn.category or '' }}" list="catList"
+                           placeholder="e.g. Rent, Salary, GST Payable...">
+                    <datalist id="catList">
+                        <option value="Interest Received">
+                        <option value="Salary Expense">
+                        <option value="Rent">
+                        <option value="Electricity">
+                        <option value="Telephone">
+                        <option value="GST Payable">
+                        <option value="Bank Transfer">
+                        <option value="UPI Payment">
+                        <option value="Miscellaneous">
+                    </datalist>
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-bold">Account Head</label>
+                    <select name="account_head_id" class="form-select">
+                        <option value="">-- Select Account Head --</option>
+                        {% for ah in account_heads %}
+                        <option value="{{ ah.id }}" {{ 'selected' if txn.account_head_id == ah.id }}>
+                            {{ ah.name }} ({{ ah.account_type }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Link to Invoice (optional)</label>
+                    <select name="linked_invoice_id" class="form-select form-select-sm">
+                        <option value="">-- None --</option>
+                        {% for inv in invoices %}
+                        <option value="{{ inv.id }}" {{ 'selected' if txn.linked_invoice_id == inv.id }}>
+                            {{ inv.invoice_no }} – {{ inv.buyer_name }} – ₹{{ "{:,.2f}".format(inv.grand_total) }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Link to Purchase (optional)</label>
+                    <select name="linked_purchase_id" class="form-select form-select-sm">
+                        <option value="">-- None --</option>
+                        {% for pv in purchases %}
+                        <option value="{{ pv.id }}" {{ 'selected' if txn.linked_purchase_id == pv.id }}>
+                            {{ pv.voucher_no }} – {{ pv.supplier_name }} – ₹{{ "{:,.2f}".format(pv.grand_total) }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="is_reconciled" id="isReconciled"
+                               {{ 'checked' if txn.is_reconciled }}>
+                        <label class="form-check-label" for="isReconciled">Mark as Reconciled</label>
+                    </div>
+                </div>
+                <div class="col-12 text-end">
+                    <a href="{{ url_for('bank.list_transactions') }}" class="btn btn-secondary me-2">Cancel</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-1"></i>Save
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

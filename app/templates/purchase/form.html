@@ -1,0 +1,366 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Edit' if edit_mode else 'Create' }} Purchase Voucher{% endblock %}
+{% block content %}
+<div class="row mb-3 align-items-center">
+    <div class="col">
+        <h4><i class="bi bi-bag me-2"></i>{{ 'Edit' if edit_mode else 'New' }} Purchase Voucher</h4>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('purchase.list_purchases') }}" class="btn btn-outline-secondary btn-sm">Back</a>
+    </div>
+</div>
+
+<form method="POST" id="pvForm">
+<div class="row g-3">
+    <!-- Header -->
+    <div class="col-md-4">
+        <label class="form-label fw-bold">Voucher No.</label>
+        <input type="text" class="form-control" value="{{ voucher.voucher_no if edit_mode else next_no }}" readonly>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label fw-bold">Date *</label>
+        <input type="date" name="date" class="form-control" required
+               value="{{ voucher.date.strftime('%Y-%m-%d') if edit_mode and voucher.date else today }}">
+    </div>
+    <div class="col-md-4">
+        <label class="form-label fw-bold">Voucher Type</label>
+        <select name="voucher_type" id="voucherType" class="form-select" onchange="onVoucherTypeChange()">
+            {% for vt in voucher_types %}
+            <option value="{{ vt }}" {{ 'selected' if (edit_mode and voucher.voucher_type == vt) or (not edit_mode and vt == 'Regular') }}>
+                {{ vt }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Supplier Section -->
+    <div class="col-12">
+        <div class="card border-primary">
+            <div class="card-header py-1 bg-primary text-white fw-bold small">Supplier Details</div>
+            <div class="card-body row g-2 pb-2">
+                <div class="col-md-4">
+                    <label class="form-label small">Select Supplier</label>
+                    <select name="supplier_id" id="supplierSelect" class="form-select form-select-sm"
+                            onchange="fillSupplier(this)">
+                        <option value="">-- Manual Entry --</option>
+                        {% for s in suppliers %}
+                        <option value="{{ s.id }}"
+                                data-name="{{ s.name }}"
+                                data-gstin="{{ s.gstin or '' }}"
+                                data-address="{{ s.address or '' }}"
+                                {{ 'selected' if edit_mode and voucher.supplier_id == s.id }}>
+                            {{ s.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small">Supplier Name</label>
+                    <input type="text" name="supplier_name" id="supplierName" class="form-control form-control-sm"
+                           value="{{ voucher.supplier_name if edit_mode else '' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small">Supplier GSTIN</label>
+                    <input type="text" name="supplier_gstin" id="supplierGstin" class="form-control form-control-sm"
+                           value="{{ voucher.supplier_gstin if edit_mode else '' }}">
+                </div>
+                <div class="col-12">
+                    <label class="form-label small">Supplier Address</label>
+                    <input type="text" name="supplier_address" id="supplierAddress" class="form-control form-control-sm"
+                           value="{{ voucher.supplier_address if edit_mode else '' }}">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment & Account -->
+    <div class="col-md-3">
+        <label class="form-label fw-bold">Supplier Invoice No.</label>
+        <input type="text" name="invoice_no" class="form-control"
+               value="{{ voucher.invoice_no if edit_mode else '' }}">
+    </div>
+    <div class="col-md-3">
+        <label class="form-label fw-bold">Payment Mode</label>
+        <select name="payment_mode" class="form-select">
+            {% for pm in payment_modes %}
+            <option value="{{ pm }}" {{ 'selected' if edit_mode and voucher.payment_mode == pm }}>{{ pm }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label fw-bold">Payment Status</label>
+        <select name="payment_status" class="form-select">
+            {% for ps in payment_statuses %}
+            <option value="{{ ps }}" {{ 'selected' if edit_mode and voucher.payment_status == ps }}>{{ ps }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label fw-bold">GST</label>
+        <div class="form-check mt-2">
+            <input class="form-check-input" type="checkbox" name="is_igst" id="isIgst"
+                   {{ 'checked' if edit_mode and voucher.is_igst }}>
+            <label class="form-check-label" for="isIgst">Apply IGST (Inter-state)</label>
+        </div>
+    </div>
+
+    <!-- Account Head (for Fixed Asset / Expense type) -->
+    <div class="col-md-6" id="accountHeadRow" style="display:none;">
+        <label class="form-label fw-bold">Account Head</label>
+        <select name="account_head_id" id="accountHeadSelect" class="form-select">
+            <option value="">-- Select Account Head --</option>
+            {% for ah in account_heads %}
+            <option value="{{ ah.id }}" data-type="{{ ah.account_type }}"
+                    {{ 'selected' if edit_mode and voucher.account_head_id == ah.id }}>
+                {{ ah.name }} ({{ ah.account_type }})
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Items Table -->
+    <div class="col-12 mt-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0 fw-bold" id="itemsHeading">Items</h6>
+            <button type="button" class="btn btn-sm btn-outline-success" onclick="addRow()">
+                <i class="bi bi-plus-circle me-1"></i>Add Row
+            </button>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-bordered table-sm" id="itemsTable">
+                <thead class="table-secondary">
+                    <tr>
+                        <th style="width:30px">#</th>
+                        <th>Description</th>
+                        <th style="width:90px">HSN</th>
+                        <th style="width:70px">GST%</th>
+                        <th style="width:80px">Qty</th>
+                        <th style="width:70px">Unit</th>
+                        <th style="width:100px">Rate (₹)</th>
+                        <th style="width:100px">Amount (₹)</th>
+                        <th style="width:30px"></th>
+                    </tr>
+                </thead>
+                <tbody id="itemsBody">
+                    {% if edit_mode and voucher.items %}
+                    {% for item in voucher.items %}
+                    <tr class="item-row">
+                        <td class="text-center sl-no">{{ loop.index }}</td>
+                        <td><input type="text" name="description[]" class="form-control form-control-sm"
+                                   value="{{ item.description }}" required></td>
+                        <td><input type="text" name="hsn_code[]" class="form-control form-control-sm"
+                                   value="{{ item.hsn_code }}"></td>
+                        <td>
+                            <select name="gst_rate[]" class="form-select form-select-sm gst-rate">
+                                {% for r in gst_rates %}
+                                <option value="{{ r }}" {{ 'selected' if item.gst_rate == r }}>{{ r }}%</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td><input type="number" name="quantity[]" class="form-control form-control-sm qty-field"
+                                   step="0.001" min="0" value="{{ item.quantity }}" oninput="calcRow(this)"></td>
+                        <td>
+                            <select name="unit[]" class="form-select form-select-sm">
+                                {% for u in units %}
+                                <option value="{{ u }}" {{ 'selected' if item.unit == u }}>{{ u }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td><input type="number" name="unit_price[]" class="form-control form-control-sm price-field"
+                                   step="0.01" min="0" value="{{ item.unit_price }}" oninput="calcRow(this)"></td>
+                        <td><input type="number" name="amount[]" class="form-control form-control-sm amount-field"
+                                   step="0.01" readonly value="{{ item.amount }}"></td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1"
+                                    onclick="removeRow(this)"><i class="bi bi-x"></i></button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr class="item-row">
+                        <td class="text-center sl-no">1</td>
+                        <td><input type="text" name="description[]" class="form-control form-control-sm" required></td>
+                        <td><input type="text" name="hsn_code[]" class="form-control form-control-sm"></td>
+                        <td>
+                            <select name="gst_rate[]" class="form-select form-select-sm gst-rate">
+                                {% for r in gst_rates %}
+                                <option value="{{ r }}">{{ r }}%</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td><input type="number" name="quantity[]" class="form-control form-control-sm qty-field"
+                                   step="0.001" min="0" value="1" oninput="calcRow(this)"></td>
+                        <td>
+                            <select name="unit[]" class="form-select form-select-sm">
+                                {% for u in units %}
+                                <option value="{{ u }}">{{ u }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td><input type="number" name="unit_price[]" class="form-control form-control-sm price-field"
+                                   step="0.01" min="0" value="" oninput="calcRow(this)"></td>
+                        <td><input type="number" name="amount[]" class="form-control form-control-sm amount-field"
+                                   step="0.01" readonly value="0"></td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1"
+                                    onclick="removeRow(this)"><i class="bi bi-x"></i></button>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Totals -->
+    <div class="col-md-6 offset-md-6">
+        <table class="table table-sm table-bordered">
+            <tr><td>Subtotal</td><td class="text-end fw-bold" id="subtotalDisplay">₹0.00</td></tr>
+            <tr id="cgstRow"><td>CGST</td><td class="text-end" id="cgstDisplay">₹0.00</td></tr>
+            <tr id="sgstRow"><td>SGST</td><td class="text-end" id="sgstDisplay">₹0.00</td></tr>
+            <tr id="igstRow" style="display:none"><td>IGST</td><td class="text-end" id="igstDisplay">₹0.00</td></tr>
+            <tr class="table-primary"><td><strong>Grand Total</strong></td><td class="text-end fw-bold" id="grandTotalDisplay">₹0.00</td></tr>
+        </table>
+    </div>
+
+    <!-- Notes -->
+    <div class="col-12">
+        <label class="form-label fw-bold">Notes</label>
+        <textarea name="notes" class="form-control" rows="2">{{ voucher.notes if edit_mode else '' }}</textarea>
+    </div>
+
+    <div class="col-12 text-end">
+        <a href="{{ url_for('purchase.list_purchases') }}" class="btn btn-secondary me-2">Cancel</a>
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-save me-1"></i>{{ 'Update' if edit_mode else 'Save' }} Voucher
+        </button>
+    </div>
+</div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Row template
+const GST_RATES = {{ gst_rates | tojson }};
+const UNITS = {{ units | tojson }};
+
+function gstRateOptions(selected) {
+    return GST_RATES.map(r =>
+        `<option value="${r}" ${r == selected ? 'selected' : ''}>${r}%</option>`
+    ).join('');
+}
+function unitOptions(selected) {
+    return UNITS.map(u =>
+        `<option value="${u}" ${u == selected ? 'selected' : ''}>${u}</option>`
+    ).join('');
+}
+
+function addRow() {
+    const tbody = document.getElementById('itemsBody');
+    const rows = tbody.querySelectorAll('.item-row');
+    const n = rows.length + 1;
+    const tr = document.createElement('tr');
+    tr.className = 'item-row';
+    tr.innerHTML = `
+        <td class="text-center sl-no">${n}</td>
+        <td><input type="text" name="description[]" class="form-control form-control-sm" required></td>
+        <td><input type="text" name="hsn_code[]" class="form-control form-control-sm"></td>
+        <td><select name="gst_rate[]" class="form-select form-select-sm gst-rate">${gstRateOptions(5)}</select></td>
+        <td><input type="number" name="quantity[]" class="form-control form-control-sm qty-field"
+                   step="0.001" min="0" value="1" oninput="calcRow(this)"></td>
+        <td><select name="unit[]" class="form-select form-select-sm">${unitOptions('Pcs')}</select></td>
+        <td><input type="number" name="unit_price[]" class="form-control form-control-sm price-field"
+                   step="0.01" min="0" value="" oninput="calcRow(this)"></td>
+        <td><input type="number" name="amount[]" class="form-control form-control-sm amount-field"
+                   step="0.01" readonly value="0"></td>
+        <td><button type="button" class="btn btn-sm btn-outline-danger py-0 px-1"
+                    onclick="removeRow(this)"><i class="bi bi-x"></i></button></td>
+    `;
+    tbody.appendChild(tr);
+    renumberRows();
+    calcTotals();
+}
+
+function removeRow(btn) {
+    const tr = btn.closest('tr');
+    if (document.querySelectorAll('.item-row').length > 1) {
+        tr.remove();
+        renumberRows();
+        calcTotals();
+    }
+}
+
+function renumberRows() {
+    document.querySelectorAll('.item-row .sl-no').forEach((el, i) => el.textContent = i + 1);
+}
+
+function calcRow(input) {
+    const tr = input.closest('tr');
+    const qty = parseFloat(tr.querySelector('.qty-field').value) || 0;
+    const price = parseFloat(tr.querySelector('.price-field').value) || 0;
+    const amount = qty * price;
+    tr.querySelector('.amount-field').value = amount.toFixed(2);
+    calcTotals();
+}
+
+function calcTotals() {
+    const isIgst = document.getElementById('isIgst').checked;
+    let subtotal = 0, cgst = 0, sgst = 0, igst = 0;
+    document.querySelectorAll('.item-row').forEach(tr => {
+        const amount = parseFloat(tr.querySelector('.amount-field').value) || 0;
+        const rate = parseFloat(tr.querySelector('.gst-rate').value) || 0;
+        subtotal += amount;
+        if (isIgst) {
+            igst += amount * rate / 100;
+        } else {
+            cgst += amount * rate / 200;
+            sgst += amount * rate / 200;
+        }
+    });
+    const grandTotal = subtotal + cgst + sgst + igst;
+    document.getElementById('subtotalDisplay').textContent = '₹' + subtotal.toFixed(2);
+    document.getElementById('cgstDisplay').textContent = '₹' + cgst.toFixed(2);
+    document.getElementById('sgstDisplay').textContent = '₹' + sgst.toFixed(2);
+    document.getElementById('igstDisplay').textContent = '₹' + igst.toFixed(2);
+    document.getElementById('grandTotalDisplay').textContent = '₹' + grandTotal.toFixed(2);
+
+    document.getElementById('cgstRow').style.display = isIgst ? 'none' : '';
+    document.getElementById('sgstRow').style.display = isIgst ? 'none' : '';
+    document.getElementById('igstRow').style.display = isIgst ? '' : 'none';
+}
+
+function fillSupplier(sel) {
+    const opt = sel.options[sel.selectedIndex];
+    document.getElementById('supplierName').value = opt.dataset.name || '';
+    document.getElementById('supplierGstin').value = opt.dataset.gstin || '';
+    document.getElementById('supplierAddress').value = opt.dataset.address || '';
+}
+
+function onVoucherTypeChange() {
+    const vt = document.getElementById('voucherType').value;
+    const ahRow = document.getElementById('accountHeadRow');
+    ahRow.style.display = (vt === 'Fixed Asset' || vt === 'Expense') ? '' : 'none';
+    // Filter account heads by type
+    const ahSel = document.getElementById('accountHeadSelect');
+    Array.from(ahSel.options).forEach(opt => {
+        if (!opt.value) return;
+        const t = opt.dataset.type || '';
+        if (vt === 'Fixed Asset') {
+            opt.style.display = t === 'Fixed Assets' ? '' : 'none';
+        } else if (vt === 'Expense') {
+            opt.style.display = (t === 'Indirect Expense' || t === 'Direct Expense') ? '' : 'none';
+        } else {
+            opt.style.display = '';
+        }
+    });
+}
+
+document.getElementById('isIgst').addEventListener('change', calcTotals);
+document.querySelectorAll('.gst-rate').forEach(el => el.addEventListener('change', calcTotals));
+
+// Init
+onVoucherTypeChange();
+calcTotals();
+</script>
+{% endblock %}
