@@ -84,9 +84,9 @@ def list_transactions():
     if category_filter:
         q = q.filter(BankTransaction.category == category_filter)
     if reconciled_filter == '1':
-        q = q.filter(BankTransaction.is_reconciled == True)
+        q = q.filter(BankTransaction.is_reconciled.is_(True))
     elif reconciled_filter == '0':
-        q = q.filter(BankTransaction.is_reconciled == False)
+        q = q.filter(BankTransaction.is_reconciled.is_(False))
 
     transactions = q.order_by(BankTransaction.date.desc()).all()
     total_debit = sum(t.debit for t in transactions)
@@ -233,7 +233,7 @@ def categorise_transaction(tid):
 @bank_bp.route('/auto-categorise', methods=['POST'])
 def auto_categorise_all():
     uncategorised = BankTransaction.query.filter(
-        (BankTransaction.category == None) |
+        (BankTransaction.category.is_(None)) |
         (BankTransaction.category == 'Uncategorised')
     ).all()
     count = 0

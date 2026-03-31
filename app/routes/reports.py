@@ -132,6 +132,13 @@ def _current_fy_dates():
     return fy_start, fy_end
 
 
+def _fy_start_for_date(ref_date):
+    """Return the financial year start date for a given reference date."""
+    if ref_date.month >= 4:
+        return date(ref_date.year, 4, 1)
+    return date(ref_date.year - 1, 4, 1)
+
+
 @reports_bp.route('/profit-loss')
 def profit_loss():
     fy_start, fy_end = _current_fy_dates()
@@ -149,11 +156,12 @@ def profit_loss():
     total_income = sum(i.grand_total for i in invoices)
 
     # Direct Expenses: Expense records linked to 'Direct Expense' account type
-    direct_exp_q = Expense.query.join(AccountHead, Expense.account_head_id == AccountHead.id, isouter=True).filter(
-        Expense.date >= date_from, Expense.date <= date_to
-    )
-    direct_expenses_list = [e for e in direct_exp_q.all()
-                            if e.account_head and e.account_head.account_type == 'Direct Expense']
+    direct_expenses_list = Expense.query.join(
+        AccountHead, Expense.account_head_id == AccountHead.id
+    ).filter(
+        Expense.date >= date_from, Expense.date <= date_to,
+        AccountHead.account_type == 'Direct Expense'
+    ).all()
     direct_exp_total = sum(e.amount for e in direct_expenses_list)
 
     # Add Regular purchase vouchers cost (subtotal = goods cost)
@@ -168,11 +176,12 @@ def profit_loss():
     gross_profit = total_income - direct_exp_total
 
     # Indirect Expenses: Expense records linked to 'Indirect Expense' account type
-    all_expenses_in_range = Expense.query.filter(
-        Expense.date >= date_from, Expense.date <= date_to
+    indirect_expenses_list = Expense.query.join(
+        AccountHead, Expense.account_head_id == AccountHead.id
+    ).filter(
+        Expense.date >= date_from, Expense.date <= date_to,
+        AccountHead.account_type == 'Indirect Expense'
     ).all()
-    indirect_expenses_list = [e for e in all_expenses_in_range
-                              if e.account_head and e.account_head.account_type == 'Indirect Expense']
     indirect_exp_total = sum(e.amount for e in indirect_expenses_list)
 
     # Also include Expense-type purchase vouchers as indirect expense
@@ -210,10 +219,7 @@ def balance_sheet():
         as_on = today
 
     # P&L for retained earnings — from start of FY to as_on date
-    if as_on.month >= 4:
-        fy_start = date(as_on.year, 4, 1)
-    else:
-        fy_start = date(as_on.year - 1, 4, 1)
+    fy_start = _fy_start_for_date(as_on)
 
     invoices_ytd = Invoice.query.filter(Invoice.date >= fy_start, Invoice.date <= as_on).all()
     income_ytd = sum(i.grand_total for i in invoices_ytd)
