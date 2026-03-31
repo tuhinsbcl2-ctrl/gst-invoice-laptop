@@ -6,7 +6,7 @@ from flask import (Blueprint, render_template, request, redirect,
                    url_for, flash, jsonify)
 from app import db
 from app.models import (PurchaseVoucher, PurchaseVoucherItem, Supplier,
-                        AccountHead, InvoiceSequence)
+                        AccountHead, InvoiceSequence, CompanySettings)
 from app.services.invoice_numbering import get_next_invoice_number, peek_next_invoice_number
 
 purchase_bp = Blueprint('purchase', __name__)
@@ -132,6 +132,8 @@ def create_purchase():
     next_no = peek_next_invoice_number('PV')
     suppliers = Supplier.query.order_by(Supplier.name).all()
     account_heads = AccountHead.query.order_by(AccountHead.account_type, AccountHead.name).all()
+    company = CompanySettings.query.first()
+    company_state_code = company.state_code if company else ''
     return render_template('purchase/form.html',
                            today=date.today().strftime('%Y-%m-%d'),
                            next_no=next_no,
@@ -141,7 +143,8 @@ def create_purchase():
                            payment_modes=PAYMENT_MODES,
                            payment_statuses=PAYMENT_STATUSES,
                            gst_rates=GST_RATES,
-                           units=UNITS)
+                           units=UNITS,
+                           company_state_code=company_state_code)
 
 
 @purchase_bp.route('/<int:vid>/edit', methods=['GET', 'POST'])
@@ -238,6 +241,8 @@ def edit_purchase(vid):
 
     suppliers = Supplier.query.order_by(Supplier.name).all()
     account_heads = AccountHead.query.order_by(AccountHead.account_type, AccountHead.name).all()
+    company = CompanySettings.query.first()
+    company_state_code = company.state_code if company else ''
     return render_template('purchase/form.html',
                            voucher=voucher,
                            edit_mode=True,
@@ -247,7 +252,8 @@ def edit_purchase(vid):
                            payment_modes=PAYMENT_MODES,
                            payment_statuses=PAYMENT_STATUSES,
                            gst_rates=GST_RATES,
-                           units=UNITS)
+                           units=UNITS,
+                           company_state_code=company_state_code)
 
 
 @purchase_bp.route('/<int:vid>')
@@ -263,3 +269,15 @@ def delete_purchase(vid):
     db.session.commit()
     flash('Purchase Voucher deleted.', 'info')
     return redirect(url_for('purchase.list_purchases'))
+
+
+@purchase_bp.route('/api/supplier/<int:sid>')
+def api_supplier(sid):
+    """Return supplier details as JSON.
+
+    Used for programmatic access to supplier data. The purchase form
+    also exposes supplier fields via data-* attributes on the dropdown
+    options for client-side autofill without an extra request.
+    """
+    s = Supplier.query.get_or_404(sid)
+    return jsonify(s.to_dict())

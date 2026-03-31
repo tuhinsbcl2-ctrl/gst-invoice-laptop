@@ -48,6 +48,7 @@
                                 data-name="{{ s.name }}"
                                 data-gstin="{{ s.gstin or '' }}"
                                 data-address="{{ s.address or '' }}"
+                                data-state-code="{{ s.state_code or '' }}"
                                 {{ 'selected' if edit_mode and voucher.supplier_id == s.id }}>
                             {{ s.name }}
                         </option>
@@ -244,6 +245,7 @@
 // Row template
 const GST_RATES = {{ gst_rates | tojson }};
 const UNITS = {{ units | tojson }};
+const COMPANY_STATE_CODE = {{ company_state_code | tojson }};
 
 function gstRateOptions(selected) {
     return GST_RATES.map(r =>
@@ -335,6 +337,15 @@ function fillSupplier(sel) {
     document.getElementById('supplierName').value = opt.dataset.name || '';
     document.getElementById('supplierGstin').value = opt.dataset.gstin || '';
     document.getElementById('supplierAddress').value = opt.dataset.address || '';
+
+    // Auto-detect IGST: compare company state_code with supplier state_code
+    const supplierStateCode = opt.dataset.stateCode || '';
+    if (COMPANY_STATE_CODE && supplierStateCode && COMPANY_STATE_CODE !== supplierStateCode) {
+        document.getElementById('isIgst').checked = true;
+    } else if (COMPANY_STATE_CODE && supplierStateCode && COMPANY_STATE_CODE === supplierStateCode) {
+        document.getElementById('isIgst').checked = false;
+    }
+    calcTotals();
 }
 
 function onVoucherTypeChange() {
