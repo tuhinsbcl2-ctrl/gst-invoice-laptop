@@ -1,0 +1,239 @@
+{% extends 'base.html' %}
+{% block title %}New Purchase Return{% endblock %}
+{% block content %}
+<div class="row mb-3 align-items-center">
+    <div class="col"><h4><i class="bi bi-arrow-return-left me-2"></i>New Purchase Return</h4></div>
+    <div class="col-auto"><a href="{{ url_for('returns.list_purchase_returns') }}" class="btn btn-outline-secondary btn-sm">Back</a></div>
+</div>
+
+<form method="POST">
+<div class="row g-3">
+    <div class="col-md-3">
+        <label class="form-label fw-bold">Return No.</label>
+        <input type="text" class="form-control" value="{{ next_no }}" readonly>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label fw-bold">Date *</label>
+        <input type="date" name="date" class="form-control" required value="{{ today }}">
+    </div>
+    <div class="col-md-6">
+        <label class="form-label fw-bold">Against Purchase Voucher (optional)</label>
+        <select name="original_voucher_id" class="form-select" onchange="fillVoucherSupplier(this)">
+            <option value="">-- None --</option>
+            {% for v in vouchers %}
+            <option value="{{ v.id }}" data-supplier-name="{{ v.supplier_name }}"
+                    data-supplier-gstin="{{ v.supplier_gstin or '' }}">
+                {{ v.voucher_no }} – {{ v.supplier_name }} ({{ v.date.strftime('%d-%m-%Y') }})
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="col-md-4">
+        <label class="form-label fw-bold">Supplier</label>
+        <select name="supplier_id" class="form-select" onchange="fillSupplier(this)">
+            <option value="">-- Select or Manual --</option>
+            {% for s in suppliers %}
+            <option value="{{ s.id }}" data-name="{{ s.name }}" data-gstin="{{ s.gstin or '' }}">
+                {{ s.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label fw-bold">Supplier Name</label>
+        <input type="text" name="supplier_name" id="supplierName" class="form-control">
+    </div>
+    <div class="col-md-4">
+        <label class="form-label fw-bold">Supplier GSTIN</label>
+        <input type="text" name="supplier_gstin" id="supplierGstin" class="form-control">
+    </div>
+    <div class="col-12">
+        <label class="form-label fw-bold">Reason for Return</label>
+        <input type="text" name="reason" class="form-control" placeholder="e.g. Defective goods, Wrong item...">
+    </div>
+    <div class="col-md-3">
+        <div class="form-check mt-4">
+            <input class="form-check-input" type="checkbox" name="is_igst" id="isIgst">
+            <label class="form-check-label" for="isIgst">IGST (Inter-state)</label>
+        </div>
+    </div>
+
+    <!-- Items -->
+    <div class="col-12 mt-2">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0 fw-bold">Items Being Returned</h6>
+            <button type="button" class="btn btn-sm btn-outline-success" onclick="addRow()">
+                <i class="bi bi-plus-circle me-1"></i>Add Row
+            </button>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-bordered table-sm" id="itemsTable">
+                <thead class="table-secondary">
+                    <tr>
+                        <th>#</th><th>Product</th><th>Description</th><th>HSN</th>
+                        <th>GST%</th><th>Qty</th><th>Unit</th><th>Rate</th><th>Amount</th><th></th>
+                    </tr>
+                </thead>
+                <tbody id="itemsBody">
+                    <tr class="item-row">
+                        <td class="text-center sl-no">1</td>
+                        <td>
+                            <select name="product_id[]" class="form-select form-select-sm prod-sel" onchange="fillProduct(this)">
+                                <option value="">-- New/Manual --</option>
+                                {% for p in products %}
+                                <option value="{{ p.id }}" data-name="{{ p.name }}"
+                                        data-hsn="{{ p.hsn_code or '' }}"
+                                        data-gst="{{ p.default_gst_rate }}"
+                                        data-price="{{ p.default_unit_price }}"
+                                        data-unit="{{ p.unit }}">
+                                    {{ p.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td><input type="text" name="description[]" class="form-control form-control-sm" required></td>
+                        <td><input type="text" name="hsn_code[]" class="form-control form-control-sm hsn-f"></td>
+                        <td>
+                            <select name="gst_rate[]" class="form-select form-select-sm gst-rate">
+                                {% for r in gst_rates %}<option value="{{ r }}">{{ r }}%</option>{% endfor %}
+                            </select>
+                        </td>
+                        <td><input type="number" name="quantity[]" class="form-control form-control-sm qty-field"
+                                   step="0.001" min="0" value="1" oninput="calcRow(this)"></td>
+                        <td>
+                            <select name="unit[]" class="form-select form-select-sm unit-f">
+                                {% for u in units %}<option value="{{ u }}">{{ u }}</option>{% endfor %}
+                            </select>
+                        </td>
+                        <td><input type="number" name="unit_price[]" class="form-control form-control-sm price-field"
+                                   step="0.01" min="0" value="" oninput="calcRow(this)"></td>
+                        <td><input type="number" name="amount[]" class="form-control form-control-sm amount-field"
+                                   step="0.01" readonly value="0"></td>
+                        <td><button type="button" class="btn btn-sm btn-outline-danger py-0 px-1"
+                                    onclick="removeRow(this)"><i class="bi bi-x"></i></button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="col-md-6 offset-md-6">
+        <table class="table table-sm table-bordered">
+            <tr><td>Subtotal</td><td class="text-end fw-bold" id="subtotalDisplay">₹0.00</td></tr>
+            <tr id="cgstRow"><td>CGST</td><td class="text-end" id="cgstDisplay">₹0.00</td></tr>
+            <tr id="sgstRow"><td>SGST</td><td class="text-end" id="sgstDisplay">₹0.00</td></tr>
+            <tr id="igstRow" style="display:none"><td>IGST</td><td class="text-end" id="igstDisplay">₹0.00</td></tr>
+            <tr class="table-primary"><td><strong>Grand Total</strong></td><td class="text-end fw-bold" id="grandTotalDisplay">₹0.00</td></tr>
+        </table>
+    </div>
+
+    <div class="col-12">
+        <label class="form-label fw-bold">Notes</label>
+        <textarea name="notes" class="form-control" rows="2"></textarea>
+    </div>
+    <div class="col-12 text-end">
+        <a href="{{ url_for('returns.list_purchase_returns') }}" class="btn btn-secondary me-2">Cancel</a>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i>Save Return</button>
+    </div>
+</div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+const GST_RATES = {{ gst_rates | tojson }};
+const UNITS = {{ units | tojson }};
+
+function gstRateOptions(sel) {
+    return GST_RATES.map(r => `<option value="${r}" ${r==sel?'selected':''}>${r}%</option>`).join('');
+}
+function unitOptions(sel) {
+    return UNITS.map(u => `<option value="${u}" ${u==sel?'selected':''}>${u}</option>`).join('');
+}
+function prodOptions() {
+    const orig = document.querySelector('.prod-sel');
+    return orig ? orig.innerHTML : '<option value="">-- New/Manual --</option>';
+}
+
+function fillProduct(sel) {
+    const opt = sel.options[sel.selectedIndex];
+    const tr = sel.closest('tr');
+    if (opt.value) {
+        tr.querySelector('[name="description[]"]').value = opt.dataset.name || '';
+        tr.querySelector('.hsn-f').value = opt.dataset.hsn || '';
+        tr.querySelector('.price-field').value = opt.dataset.price || '';
+        const gstSel = tr.querySelector('.gst-rate');
+        Array.from(gstSel.options).forEach(o => { o.selected = (o.value == opt.dataset.gst); });
+        const unitSel = tr.querySelector('.unit-f');
+        Array.from(unitSel.options).forEach(o => { o.selected = (o.value == opt.dataset.unit); });
+        calcRow(tr.querySelector('.qty-field'));
+    }
+}
+
+function addRow() {
+    const tbody = document.getElementById('itemsBody');
+    const n = tbody.querySelectorAll('.item-row').length + 1;
+    const tr = document.createElement('tr');
+    tr.className = 'item-row';
+    tr.innerHTML = `
+        <td class="text-center sl-no">${n}</td>
+        <td><select name="product_id[]" class="form-select form-select-sm prod-sel" onchange="fillProduct(this)">${prodOptions()}</select></td>
+        <td><input type="text" name="description[]" class="form-control form-control-sm" required></td>
+        <td><input type="text" name="hsn_code[]" class="form-control form-control-sm hsn-f"></td>
+        <td><select name="gst_rate[]" class="form-select form-select-sm gst-rate">${gstRateOptions(5)}</select></td>
+        <td><input type="number" name="quantity[]" class="form-control form-control-sm qty-field" step="0.001" min="0" value="1" oninput="calcRow(this)"></td>
+        <td><select name="unit[]" class="form-select form-select-sm unit-f">${unitOptions('Pcs')}</select></td>
+        <td><input type="number" name="unit_price[]" class="form-control form-control-sm price-field" step="0.01" min="0" value="" oninput="calcRow(this)"></td>
+        <td><input type="number" name="amount[]" class="form-control form-control-sm amount-field" step="0.01" readonly value="0"></td>
+        <td><button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" onclick="removeRow(this)"><i class="bi bi-x"></i></button></td>`;
+    tbody.appendChild(tr);
+    renumberRows();
+}
+function removeRow(btn) {
+    const tr = btn.closest('tr');
+    if (document.querySelectorAll('.item-row').length > 1) { tr.remove(); renumberRows(); calcTotals(); }
+}
+function renumberRows() {
+    document.querySelectorAll('.item-row .sl-no').forEach((el, i) => el.textContent = i + 1);
+}
+function calcRow(input) {
+    const tr = input.closest('tr');
+    const qty = parseFloat(tr.querySelector('.qty-field').value) || 0;
+    const price = parseFloat(tr.querySelector('.price-field').value) || 0;
+    tr.querySelector('.amount-field').value = (qty * price).toFixed(2);
+    calcTotals();
+}
+function calcTotals() {
+    const isIgst = document.getElementById('isIgst').checked;
+    let sub = 0, cgst = 0, sgst = 0, igst = 0;
+    document.querySelectorAll('.item-row').forEach(tr => {
+        const a = parseFloat(tr.querySelector('.amount-field').value) || 0;
+        const r = parseFloat(tr.querySelector('.gst-rate').value) || 0;
+        sub += a;
+        if (isIgst) igst += a * r / 100;
+        else { cgst += a * r / 200; sgst += a * r / 200; }
+    });
+    document.getElementById('subtotalDisplay').textContent = '₹' + sub.toFixed(2);
+    document.getElementById('cgstDisplay').textContent = '₹' + cgst.toFixed(2);
+    document.getElementById('sgstDisplay').textContent = '₹' + sgst.toFixed(2);
+    document.getElementById('igstDisplay').textContent = '₹' + igst.toFixed(2);
+    document.getElementById('grandTotalDisplay').textContent = '₹' + (sub + cgst + sgst + igst).toFixed(2);
+    document.getElementById('cgstRow').style.display = isIgst ? 'none' : '';
+    document.getElementById('sgstRow').style.display = isIgst ? 'none' : '';
+    document.getElementById('igstRow').style.display = isIgst ? '' : 'none';
+}
+function fillSupplier(sel) {
+    const opt = sel.options[sel.selectedIndex];
+    document.getElementById('supplierName').value = opt.dataset.name || '';
+    document.getElementById('supplierGstin').value = opt.dataset.gstin || '';
+}
+function fillVoucherSupplier(sel) {
+    const opt = sel.options[sel.selectedIndex];
+    document.getElementById('supplierName').value = opt.dataset.supplierName || '';
+    document.getElementById('supplierGstin').value = opt.dataset.supplierGstin || '';
+}
+document.getElementById('isIgst').addEventListener('change', calcTotals);
+document.querySelectorAll('.gst-rate').forEach(el => el.addEventListener('change', calcTotals));
+calcTotals();
+</script>
+{% endblock %}

@@ -132,6 +132,7 @@
                 <thead class="table-secondary">
                     <tr>
                         <th style="width:30px">#</th>
+                        <th style="width:160px">Product</th>
                         <th>Description</th>
                         <th style="width:90px">HSN</th>
                         <th style="width:70px">GST%</th>
@@ -147,9 +148,24 @@
                     {% for item in voucher.items %}
                     <tr class="item-row">
                         <td class="text-center sl-no">{{ loop.index }}</td>
-                        <td><input type="text" name="description[]" class="form-control form-control-sm"
+                        <td>
+                            <select name="product_id[]" class="form-select form-select-sm prod-sel" onchange="fillProduct(this)">
+                                <option value="">-- New/Manual --</option>
+                                {% for p in products %}
+                                <option value="{{ p.id }}" data-name="{{ p.name }}"
+                                        data-hsn="{{ p.hsn_code or '' }}"
+                                        data-gst="{{ p.default_gst_rate }}"
+                                        data-price="{{ p.default_unit_price }}"
+                                        data-unit="{{ p.unit }}"
+                                        {% if item.product_id == p.id %}selected{% endif %}>
+                                    {{ p.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td><input type="text" name="description[]" class="form-control form-control-sm desc-f"
                                    value="{{ item.description }}" required></td>
-                        <td><input type="text" name="hsn_code[]" class="form-control form-control-sm"
+                        <td><input type="text" name="hsn_code[]" class="form-control form-control-sm hsn-f"
                                    value="{{ item.hsn_code }}"></td>
                         <td>
                             <select name="gst_rate[]" class="form-select form-select-sm gst-rate">
@@ -161,7 +177,7 @@
                         <td><input type="number" name="quantity[]" class="form-control form-control-sm qty-field"
                                    step="0.001" min="0" value="{{ item.quantity }}" oninput="calcRow(this)"></td>
                         <td>
-                            <select name="unit[]" class="form-select form-select-sm">
+                            <select name="unit[]" class="form-select form-select-sm unit-f">
                                 {% for u in units %}
                                 <option value="{{ u }}" {{ 'selected' if item.unit == u }}>{{ u }}</option>
                                 {% endfor %}
@@ -180,8 +196,22 @@
                     {% else %}
                     <tr class="item-row">
                         <td class="text-center sl-no">1</td>
-                        <td><input type="text" name="description[]" class="form-control form-control-sm" required></td>
-                        <td><input type="text" name="hsn_code[]" class="form-control form-control-sm"></td>
+                        <td>
+                            <select name="product_id[]" class="form-select form-select-sm prod-sel" onchange="fillProduct(this)">
+                                <option value="">-- New/Manual --</option>
+                                {% for p in products %}
+                                <option value="{{ p.id }}" data-name="{{ p.name }}"
+                                        data-hsn="{{ p.hsn_code or '' }}"
+                                        data-gst="{{ p.default_gst_rate }}"
+                                        data-price="{{ p.default_unit_price }}"
+                                        data-unit="{{ p.unit }}">
+                                    {{ p.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td><input type="text" name="description[]" class="form-control form-control-sm desc-f" required></td>
+                        <td><input type="text" name="hsn_code[]" class="form-control form-control-sm hsn-f"></td>
                         <td>
                             <select name="gst_rate[]" class="form-select form-select-sm gst-rate">
                                 {% for r in gst_rates %}
@@ -192,7 +222,7 @@
                         <td><input type="number" name="quantity[]" class="form-control form-control-sm qty-field"
                                    step="0.001" min="0" value="1" oninput="calcRow(this)"></td>
                         <td>
-                            <select name="unit[]" class="form-select form-select-sm">
+                            <select name="unit[]" class="form-select form-select-sm unit-f">
                                 {% for u in units %}
                                 <option value="{{ u }}">{{ u }}</option>
                                 {% endfor %}
@@ -247,6 +277,12 @@ const GST_RATES = {{ gst_rates | tojson }};
 const UNITS = {{ units | tojson }};
 const COMPANY_STATE_CODE = {{ company_state_code | tojson }};
 
+// Product options HTML for new rows
+function prodOptionsHTML() {
+    const orig = document.querySelector('.prod-sel');
+    return orig ? orig.innerHTML : '<option value="">-- New/Manual --</option>';
+}
+
 function gstRateOptions(selected) {
     return GST_RATES.map(r =>
         `<option value="${r}" ${r == selected ? 'selected' : ''}>${r}%</option>`
@@ -258,6 +294,22 @@ function unitOptions(selected) {
     ).join('');
 }
 
+function fillProduct(sel) {
+    const opt = sel.options[sel.selectedIndex];
+    if (!opt.value) return;
+    const tr = sel.closest('tr');
+    tr.querySelector('.desc-f').value = opt.dataset.name || '';
+    tr.querySelector('.hsn-f').value = opt.dataset.hsn || '';
+    tr.querySelector('.price-field').value = opt.dataset.price || '';
+    Array.from(tr.querySelector('.gst-rate').options).forEach(o => {
+        o.selected = (parseFloat(o.value) === parseFloat(opt.dataset.gst));
+    });
+    Array.from(tr.querySelector('.unit-f').options).forEach(o => {
+        o.selected = (o.value === opt.dataset.unit);
+    });
+    calcRow(tr.querySelector('.qty-field'));
+}
+
 function addRow() {
     const tbody = document.getElementById('itemsBody');
     const rows = tbody.querySelectorAll('.item-row');
@@ -266,12 +318,13 @@ function addRow() {
     tr.className = 'item-row';
     tr.innerHTML = `
         <td class="text-center sl-no">${n}</td>
-        <td><input type="text" name="description[]" class="form-control form-control-sm" required></td>
-        <td><input type="text" name="hsn_code[]" class="form-control form-control-sm"></td>
+        <td><select name="product_id[]" class="form-select form-select-sm prod-sel" onchange="fillProduct(this)">${prodOptionsHTML()}</select></td>
+        <td><input type="text" name="description[]" class="form-control form-control-sm desc-f" required></td>
+        <td><input type="text" name="hsn_code[]" class="form-control form-control-sm hsn-f"></td>
         <td><select name="gst_rate[]" class="form-select form-select-sm gst-rate">${gstRateOptions(5)}</select></td>
         <td><input type="number" name="quantity[]" class="form-control form-control-sm qty-field"
                    step="0.001" min="0" value="1" oninput="calcRow(this)"></td>
-        <td><select name="unit[]" class="form-select form-select-sm">${unitOptions('Pcs')}</select></td>
+        <td><select name="unit[]" class="form-select form-select-sm unit-f">${unitOptions('Pcs')}</select></td>
         <td><input type="number" name="unit_price[]" class="form-control form-control-sm price-field"
                    step="0.01" min="0" value="" oninput="calcRow(this)"></td>
         <td><input type="number" name="amount[]" class="form-control form-control-sm amount-field"

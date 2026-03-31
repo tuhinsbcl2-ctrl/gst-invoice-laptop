@@ -106,6 +106,12 @@ def create_invoice():
             place_of_supply=data.get('place_of_supply', ''),
             place_of_supply_code=place_code,
             is_igst=is_igst,
+            ship_to_same=data.get('ship_to_same') == 'on',
+            ship_to_name=data.get('ship_to_name', ''),
+            ship_to_address=data.get('ship_to_address', ''),
+            ship_to_state=data.get('ship_to_state', ''),
+            ship_to_gstin=data.get('ship_to_gstin', ''),
+            way_bill_no=data.get('way_bill_no', ''),
             subtotal=totals['subtotal'],
             cgst_total=totals['cgst_total'],
             sgst_total=totals['sgst_total'],
@@ -244,6 +250,12 @@ def edit_invoice(invoice_id):
         invoice.place_of_supply = data.get('place_of_supply', '')
         invoice.place_of_supply_code = place_code
         invoice.is_igst = is_igst
+        invoice.ship_to_same = data.get('ship_to_same') == 'on'
+        invoice.ship_to_name = data.get('ship_to_name', '')
+        invoice.ship_to_address = data.get('ship_to_address', '')
+        invoice.ship_to_state = data.get('ship_to_state', '')
+        invoice.ship_to_gstin = data.get('ship_to_gstin', '')
+        invoice.way_bill_no = data.get('way_bill_no', '')
         invoice.subtotal = totals['subtotal']
         invoice.cgst_total = totals['cgst_total']
         invoice.sgst_total = totals['sgst_total']

@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}Purchase Returns{% endblock %}
+{% block content %}
+<div class="row mb-3 align-items-center">
+    <div class="col"><h4><i class="bi bi-arrow-return-left me-2"></i>Purchase Returns</h4></div>
+    <div class="col-auto">
+        <a href="{{ url_for('returns.create_purchase_return') }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-circle me-1"></i>New Purchase Return
+        </a>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-3">
+        <div class="card bg-warning-subtle">
+            <div class="card-body py-2 text-center">
+                <div class="small text-muted">Total Returns Value</div>
+                <div class="fs-5 fw-bold">₹{{ "{:,.2f}".format(total) }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if returns %}
+<div class="table-responsive">
+    <table class="table table-sm table-hover table-bordered">
+        <thead class="table-secondary">
+            <tr>
+                <th>Return No</th><th>Date</th><th>Supplier</th>
+                <th>Original Voucher</th><th>Reason</th>
+                <th class="text-end">Amount</th><th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in returns %}
+            <tr>
+                <td>{{ r.return_no }}</td>
+                <td>{{ r.date.strftime('%d-%m-%Y') }}</td>
+                <td>{{ r.supplier_name or '—' }}</td>
+                <td>
+                    {% if r.original_voucher %}
+                    <a href="{{ url_for('purchase.view_purchase', vid=r.original_voucher.id) }}">
+                        {{ r.original_voucher.voucher_no }}
+                    </a>
+                    {% else %}—{% endif %}
+                </td>
+                <td>{{ r.reason or '—' }}</td>
+                <td class="text-end fw-bold">₹{{ "{:,.2f}".format(r.grand_total) }}</td>
+                <td>
+                    <form method="POST" action="{{ url_for('returns.delete_purchase_return', rid=r.id) }}"
+                          onsubmit="return confirm('Delete this return?')">
+                        <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-1">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="alert alert-info">No purchase returns yet.</div>
+{% endif %}
+{% endblock %}

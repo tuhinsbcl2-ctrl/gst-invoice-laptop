@@ -313,7 +313,8 @@
                                             data-hsn="{{ p.hsn_code }}"
                                             data-gst="{{ p.default_gst_rate }}"
                                             data-price="{{ p.default_unit_price }}"
-                                            data-unit="{{ p.unit }}">{{ p.name }}</option>
+                                            data-unit="{{ p.unit }}"
+                                            data-stock="{{ p.stock_quantity }}">{{ p.name }} (Stock: {{ p.stock_quantity }})</option>
                                         {% endfor %}
                                     </select>
                                     <input type="text" name="description[]" class="form-control form-control-sm input-editable" value="{{ item.description }}" required>
@@ -346,6 +347,56 @@
                         {% endif %}
                     </tbody>
                 </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ship-to & Way Bill -->
+    <div class="col-12">
+        <div class="card border-secondary">
+            <div class="card-header py-1 bg-secondary text-white fw-bold small d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-truck me-1"></i>Ship-To / Dispatch Details</span>
+            </div>
+            <div class="card-body row g-2 pb-2">
+                <div class="col-12">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="ship_to_same" id="shipToSame"
+                               {{ 'checked' if not edit_mode or (invoice.ship_to_same if edit_mode) }}
+                               onchange="toggleShipTo(this)">
+                        <label class="form-check-label" for="shipToSame">Ship to same as Bill-to address</label>
+                    </div>
+                </div>
+                <div id="shipToFields" style="{{ 'display:none' if not edit_mode or (invoice.ship_to_same if edit_mode) }}">
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="form-label small">Ship-to Name</label>
+                            <input type="text" name="ship_to_name" class="form-control form-control-sm"
+                                   value="{{ invoice.ship_to_name if edit_mode else '' }}"
+                                   placeholder="Ship-to party name">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Ship-to GSTIN</label>
+                            <input type="text" name="ship_to_gstin" class="form-control form-control-sm"
+                                   value="{{ invoice.ship_to_gstin if edit_mode else '' }}">
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label small">Ship-to Address</label>
+                            <input type="text" name="ship_to_address" class="form-control form-control-sm"
+                                   value="{{ invoice.ship_to_address if edit_mode else '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small">Ship-to State</label>
+                            <input type="text" name="ship_to_state" class="form-control form-control-sm"
+                                   value="{{ invoice.ship_to_state if edit_mode else '' }}">
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-bold">e-Way Bill / Way Bill No.</label>
+                    <input type="text" name="way_bill_no" class="form-control form-control-sm"
+                           value="{{ invoice.way_bill_no if edit_mode else '' }}"
+                           placeholder="EWB No. (if applicable)">
                 </div>
             </div>
         </div>
@@ -440,6 +491,10 @@
 
 {% block scripts %}
 <script>
+function toggleShipTo(cb) {
+    document.getElementById('shipToFields').style.display = cb.checked ? 'none' : '';
+}
+
 // Set a state <select> dropdown by matching value or code
 function setStateDropdown(selectId, stateName, stateCode) {
     const sel = document.getElementById(selectId);

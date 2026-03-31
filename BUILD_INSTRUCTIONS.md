@@ -1,6 +1,6 @@
 # Building the Standalone Windows .exe
 
-This guide explains how to package the GST Billing App into a single
+This guide explains how to package the GST Billing App into a
 `GSTBillingApp.exe` that runs on **any Windows PC without installing Python**.
 
 ---
@@ -50,6 +50,17 @@ pyinstaller --clean run_app.spec
 
 ---
 
+## No CMD Window (Windowed Mode)
+
+The build is configured with `console=False` in `run_app.spec`.  
+This means **double-clicking the `.exe` opens the app directly in the browser — no black CMD window appears**.
+
+The app starts a local Flask server in the background and automatically opens your default browser.
+
+> **If the app doesn't open:** manually browse to <http://localhost:5000>
+
+---
+
 ## Output Structure
 
 After a successful build you will find:
@@ -57,7 +68,7 @@ After a successful build you will find:
 ```
 dist/
 └── GSTBillingApp/
-    ├── GSTBillingApp.exe      ← Double-click to run
+    ├── GSTBillingApp.exe      ← Double-click to run (no CMD window)
     ├── data/                  ← Created automatically on first run
     │   └── gst_billing.db     ← Your database (all invoices & settings)
     ├── exports/               ← Generated PDFs, Excel files
@@ -66,18 +77,17 @@ dist/
 ```
 
 > **The `data/` folder is created automatically the first time the app runs.**
-> NIBRITY ENTERPRISE company details and the invoice sequence are seeded on first launch.
+> Company details and the invoice sequence are seeded on first launch.
 
 ---
 
 ## Distributing to Another PC
 
 1. Copy the **entire `dist\GSTBillingApp\` folder** to the target PC
-   (via USB drive, shared folder, email, etc.).
-2. On the target PC, double-click **`GSTBillingApp.exe`**.
-3. A console window opens — the server starts in seconds.
-4. The default browser opens automatically at **<http://localhost:5000>**.
-5. Start billing! 🎉
+   (via USB drive, shared folder, Google Drive, etc.).
+2. On the target PC, **double-click `GSTBillingApp.exe`**.
+3. The browser opens automatically at **<http://localhost:5000>**.
+4. Start billing! 🎉
 
 No Python, no pip, no terminal commands needed on the target PC.
 
@@ -97,6 +107,8 @@ To move data to a new PC (or a new build):
 2. Paste it into the `data\` folder next to the exe on the new machine.
 3. Run `GSTBillingApp.exe` — all your invoices and settings are restored.
 
+> The app automatically runs database migrations on startup, so columns added in new versions are added to your existing database without losing data.
+
 ---
 
 ## Troubleshooting
@@ -105,9 +117,10 @@ To move data to a new PC (or a new build):
 |---------|----------|
 | Build fails with "module not found" | Run `python -m pip install -r requirements-dev.txt` again, then rebuild |
 | Antivirus blocks the .exe | Add `dist\GSTBillingApp\` as an exception in your antivirus |
-| Browser does not open automatically | Open `http://localhost:5000` manually while the console window is open |
+| Browser does not open automatically | Open `http://localhost:5000` manually |
 | Port 5000 already in use | Close other apps using port 5000, then try again |
 | App data is lost after updating exe | Always preserve the `data\gst_billing.db` file across updates |
+| Reports show 500 error on old database | The startup migration should fix this automatically; check the log |
 
 ---
 

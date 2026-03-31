@@ -90,6 +90,9 @@
                     {% if invoice.motor_vehicle_no %}
                     <tr><td class="fw-bold">Vehicle No:</td><td>{{ invoice.motor_vehicle_no }}</td></tr>
                     {% endif %}
+                    {% if invoice.way_bill_no %}
+                    <tr><td class="fw-bold">e-Way Bill:</td><td>{{ invoice.way_bill_no }}</td></tr>
+                    {% endif %}
                 </table>
             </div>
         </div>
@@ -103,6 +106,16 @@
             {% if invoice.buyer_state_name %}<small><strong>State:</strong> {{ invoice.buyer_state_name }}, Code: {{ invoice.buyer_state_code }}</small><br>{% endif %}
             {% if invoice.place_of_supply %}<small><strong>Place of Supply:</strong> {{ invoice.place_of_supply }}</small>{% endif %}
         </div>
+
+        {% if invoice.ship_to_same == False or (not invoice.ship_to_same and invoice.ship_to_name) %}
+        <div class="border rounded p-2 mb-3 bg-info-subtle">
+            <strong>Ship To:</strong><br>
+            {% if invoice.ship_to_name %}<span class="fw-bold">{{ invoice.ship_to_name }}</span><br>{% endif %}
+            {% if invoice.ship_to_address %}<small>{{ invoice.ship_to_address }}</small><br>{% endif %}
+            {% if invoice.ship_to_state %}<small><strong>State:</strong> {{ invoice.ship_to_state }}</small><br>{% endif %}
+            {% if invoice.ship_to_gstin %}<small><strong>GSTIN:</strong> {{ invoice.ship_to_gstin }}</small>{% endif %}
+        </div>
+        {% endif %}
 
         <!-- Items Table -->
         <div class="table-responsive">

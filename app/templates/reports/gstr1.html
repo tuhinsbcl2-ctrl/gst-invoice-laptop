@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+{% block title %}GSTR-1 Report{% endblock %}
+{% block content %}
+<div class="row mb-3 align-items-center">
+    <div class="col"><h4><i class="bi bi-file-earmark-text me-2"></i>GSTR-1 Report</h4></div>
+    <div class="col-auto">
+        <a href="{{ url_for('reports.gstr1', date_from=date_from.strftime('%Y-%m-%d'), date_to=date_to.strftime('%Y-%m-%d'), export='csv') }}"
+           class="btn btn-success btn-sm"><i class="bi bi-download me-1"></i>Export CSV</a>
+        <button class="btn btn-outline-secondary btn-sm ms-1" onclick="window.print()">
+            <i class="bi bi-printer me-1"></i>Print
+        </button>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-3 no-print">
+    <div class="card-body py-2">
+        <form class="row g-2 align-items-end" method="GET">
+            <div class="col-auto">
+                <label class="form-label small mb-1">Month</label>
+                <input type="month" name="month" class="form-control form-control-sm"
+                       value="{{ month_str }}">
+            </div>
+            <div class="col-auto"><small class="text-muted">OR custom range:</small></div>
+            <div class="col-auto">
+                <label class="form-label small mb-1">From</label>
+                <input type="date" name="date_from" class="form-control form-control-sm"
+                       value="{{ date_from.strftime('%Y-%m-%d') }}">
+            </div>
+            <div class="col-auto">
+                <label class="form-label small mb-1">To</label>
+                <input type="date" name="date_to" class="form-control form-control-sm"
+                       value="{{ date_to.strftime('%Y-%m-%d') }}">
+            </div>
+            <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm">Apply</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="alert alert-info small py-2">
+    Period: <strong>{{ date_from.strftime('%d %b %Y') }}</strong> to <strong>{{ date_to.strftime('%d %b %Y') }}</strong>
+    &nbsp;|&nbsp; Total Invoices: <strong>{{ invoices|length }}</strong>
+</div>
+
+<!-- Summary Cards -->
+<div class="row g-3 mb-3">
+    <div class="col-md-3">
+        <div class="card border-primary text-center">
+            <div class="card-body py-2">
+                <div class="small text-muted">B2B Sales</div>
+                <div class="fs-5 fw-bold text-primary">{{ b2b_invoices|length }}</div>
+                <div class="small">₹{{ "{:,.2f}".format(b2b_totals.total) }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-secondary text-center">
+            <div class="card-body py-2">
+                <div class="small text-muted">B2C Sales</div>
+                <div class="fs-5 fw-bold">{{ b2c_invoices|length }}</div>
+                <div class="small">₹{{ "{:,.2f}".format(b2c_totals.total) }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-warning text-center">
+            <div class="card-body py-2">
+                <div class="small text-muted">Total Tax (CGST+SGST+IGST)</div>
+                <div class="fs-5 fw-bold text-warning">
+                    ₹{{ "{:,.2f}".format(all_totals.cgst + all_totals.sgst + all_totals.igst) }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-success text-center">
+            <div class="card-body py-2">
+                <div class="small text-muted">Grand Total</div>
+                <div class="fs-5 fw-bold text-success">₹{{ "{:,.2f}".format(all_totals.total) }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- B2B Table -->
+{% if b2b_invoices %}
+<h6 class="fw-bold text-primary mt-3">B2B Invoices (with GSTIN)</h6>
+<div class="table-responsive">
+    <table class="table table-sm table-bordered table-hover">
+        <thead class="table-primary">
+            <tr>
+                <th>#</th><th>Invoice No</th><th>Date</th><th>Buyer</th><th>Buyer GSTIN</th>
+                <th class="text-end">Taxable</th><th class="text-end">CGST</th>
+                <th class="text-end">SGST</th><th class="text-end">IGST</th>
+                <th class="text-end">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for inv in b2b_invoices %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td><a href="{{ url_for('invoice.view_invoice', invoice_id=inv.id) }}">{{ inv.invoice_no }}</a></td>
+                <td>{{ inv.date.strftime('%d-%m-%Y') }}</td>
+                <td>{{ inv.buyer_name }}</td>
+                <td><code>{{ inv.buyer_gstin }}</code></td>
+                <td class="text-end">{{ "{:,.2f}".format(inv.subtotal) }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(inv.cgst_total) }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(inv.sgst_total) }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(inv.igst_total) }}</td>
+                <td class="text-end fw-bold">{{ "{:,.2f}".format(inv.grand_total) }}</td>
+            </tr>
+            {% endfor %}
+            <tr class="table-warning fw-bold">
+                <td colspan="5" class="text-end">B2B Total</td>
+                <td class="text-end">{{ "{:,.2f}".format(b2b_totals.taxable) }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(b2b_totals.cgst) }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(b2b_totals.sgst) }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(b2b_totals.igst) }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(b2b_totals.total) }}</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<!-- B2C Table -->
+{% if b2c_invoices %}
+<h6 class="fw-bold text-secondary mt-3">B2C Invoices (without GSTIN)</h6>
+<div class="table-responsive">
+    <table class="table table-sm table-bordered table-hover">
+        <thead class="table-secondary">
+            <tr>
+                <th>#</th><th>Invoice No</th><th>Date</th><th>Buyer</th>
+                <th class="text-end">Taxable</th><th class="text-end">CGST</th>
+                <th class="text-end">SGST</th><th class="text-end">IGST</th>
+                <th class="text-end">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for inv in b2c_invoices %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td><a href="{{ url_for('invoice.view_invoice', invoice_id=inv.id) }}">{{ inv.invoice_no }}</a></td>
+                <td>{{ inv.date.strftime('%d-%m-%Y') }}</td>
+                <td>{{ inv.buyer_name }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(inv.subtotal) }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(inv.cgst_total) }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(inv.sgst_total) }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(inv.igst_total) }}</td>
+                <td class="text-end fw-bold">{{ "{:,.2f}".format(inv.grand_total) }}</td>
+            </tr>
+            {% endfor %}
+            <tr class="table-secondary fw-bold">
+                <td colspan="4" class="text-end">B2C Total</td>
+                <td class="text-end">{{ "{:,.2f}".format(b2c_totals.taxable) }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(b2c_totals.cgst) }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(b2c_totals.sgst) }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(b2c_totals.igst) }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(b2c_totals.total) }}</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% if not invoices %}
+<div class="alert alert-warning">No invoices found for this period.</div>
+{% endif %}
+
+<!-- Grand Total Row -->
+<div class="card mt-3 border-success">
+    <div class="card-body p-2">
+        <table class="table table-sm mb-0">
+            <tr>
+                <th>Grand Total (All)</th>
+                <th class="text-end">Taxable: ₹{{ "{:,.2f}".format(all_totals.taxable) }}</th>
+                <th class="text-end">CGST: ₹{{ "{:,.2f}".format(all_totals.cgst) }}</th>
+                <th class="text-end">SGST: ₹{{ "{:,.2f}".format(all_totals.sgst) }}</th>
+                <th class="text-end">IGST: ₹{{ "{:,.2f}".format(all_totals.igst) }}</th>
+                <th class="text-end text-success fw-bold">Total: ₹{{ "{:,.2f}".format(all_totals.total) }}</th>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<style>
+@media print { .no-print { display:none!important; } .navbar, footer, .alert-info { display:none!important; } }
+</style>
+{% endblock %}
