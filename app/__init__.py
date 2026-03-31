@@ -55,4 +55,7 @@ def create_app(config_class=Config):
     with app.app_context():
         db.create_all()
 
+    from app.services.db_migrate import migrate_sqlite_schema
+    migrate_sqlite_schema(app)
+
     return app

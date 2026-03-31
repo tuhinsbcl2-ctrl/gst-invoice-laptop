@@ -20,12 +20,13 @@
                 </div>
                 <div class="col-md-6">
                     <label class="form-label fw-bold">GSTIN</label>
-                    <input type="text" name="gstin" class="form-control" maxlength="15"
-                           value="{{ supplier.gstin if edit_mode else '' }}">
+                    <input type="text" name="gstin" id="supplierGstin" class="form-control" maxlength="15"
+                           value="{{ supplier.gstin if edit_mode else '' }}"
+                           oninput="derivePanFromGstin(this, 'supplierPan')">
                 </div>
                 <div class="col-md-6">
                     <label class="form-label fw-bold">PAN</label>
-                    <input type="text" name="pan" class="form-control" maxlength="10"
+                    <input type="text" name="pan" id="supplierPan" class="form-control" maxlength="10"
                            value="{{ supplier.pan if edit_mode else '' }}">
                 </div>
                 <div class="col-md-6">
@@ -66,4 +67,18 @@
         </form>
     </div>
 </div>
+<script>
+function derivePanFromGstin(gstinInput, panFieldId) {
+    const gstin = gstinInput.value.trim().toUpperCase();
+    const panField = document.getElementById(panFieldId);
+    // GSTIN format: 2-digit state code + 10-char PAN + 3 more chars (total 15)
+    if (gstin.length >= 12) {
+        const pan = gstin.substring(2, 12);
+        if (!panField.value || panField.dataset.autofilled === 'true') {
+            panField.value = pan;
+            panField.dataset.autofilled = 'true';
+        }
+    }
+}
+</script>
 {% endblock %}
