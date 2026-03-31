@@ -9,6 +9,7 @@ from app.models import (PurchaseVoucher, PurchaseVoucherItem, Supplier,
                         AccountHead, InvoiceSequence, CompanySettings,
                         Product, InventoryLedger)
 from app.services.invoice_numbering import get_next_invoice_number, peek_next_invoice_number
+from app.services.form_helpers import parse_voucher_items
 
 purchase_bp = Blueprint('purchase', __name__)
 
@@ -56,62 +57,9 @@ def _record_inventory(voucher, action='add'):
         prod.stock_quantity = (prod.stock_quantity or 0.0) + item.quantity
 
 
-def _parse_items(request, is_igst):
-    """Parse item fields from POST form; return (items, subtotal, cgst, sgst, igst)."""
-    product_ids = request.form.getlist('product_id[]')
-    descriptions = request.form.getlist('description[]')
-    hsn_codes = request.form.getlist('hsn_code[]')
-    gst_rates = request.form.getlist('gst_rate[]')
-    quantities = request.form.getlist('quantity[]')
-    units = request.form.getlist('unit[]')
-    unit_prices = request.form.getlist('unit_price[]')
-    item_account_heads = request.form.getlist('item_account_head_id[]')
-
-    items = []
-    subtotal = cgst_total = sgst_total = igst_total = 0.0
-
-    for i, desc in enumerate(descriptions):
-        if not desc.strip():
-            continue
-        qty = float(quantities[i] if i < len(quantities) else 0) or 0.0
-        price = float(unit_prices[i] if i < len(unit_prices) else 0) or 0.0
-        gst_rate = float(gst_rates[i] if i < len(gst_rates) else 0) or 0.0
-        amount = qty * price
-        subtotal += amount
-
-        cgst_amt = sgst_amt = igst_amt = 0.0
-        if is_igst:
-            igst_amt = round(amount * gst_rate / 100, 2)
-            igst_total += igst_amt
-        else:
-            cgst_amt = round(amount * gst_rate / 200, 2)
-            sgst_amt = cgst_amt
-            cgst_total += cgst_amt
-            sgst_total += sgst_amt
-
-        pid_raw = product_ids[i] if i < len(product_ids) else ''
-        pid = int(pid_raw) if pid_raw and pid_raw.strip().isdigit() else None
-
-        item_ah_id = item_account_heads[i] if i < len(item_account_heads) else None
-        item_ah_id = int(item_ah_id) if item_ah_id and item_ah_id.strip().isdigit() else None
-
-        items.append(dict(
-            sl_no=len(items) + 1,
-            product_id=pid,
-            description=desc.strip(),
-            hsn_code=hsn_codes[i] if i < len(hsn_codes) else '',
-            gst_rate=gst_rate,
-            quantity=qty,
-            unit=units[i] if i < len(units) else 'Pcs',
-            unit_price=price,
-            amount=amount,
-            cgst_amount=cgst_amt,
-            sgst_amount=sgst_amt,
-            igst_amount=igst_amt,
-            account_head_id=item_ah_id,
-        ))
-
-    return items, subtotal, cgst_total, sgst_total, igst_total
+def _parse_items(req, is_igst):
+    """Thin wrapper around the shared parse_voucher_items for purchase vouchers."""
+    return parse_voucher_items(req.form, is_igst, with_account_head=True)
 
 
 @purchase_bp.route('/')
