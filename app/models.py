@@ -5,6 +5,49 @@ from datetime import datetime
 from app import db
 
 
+class AccountHead(db.Model):
+    __tablename__ = 'account_heads'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+    account_type = db.Column(db.String(50), nullable=False)
+    # account_type values: 'Direct Income', 'Indirect Income', 'Direct Expense',
+    # 'Indirect Expense', 'Fixed Assets', 'Current Assets', 'Current Liabilities',
+    # 'Capital Account', 'Bank Account', 'Cash Account'
+    parent_id = db.Column(db.Integer, db.ForeignKey('account_heads.id'), nullable=True)
+    description = db.Column(db.String(300))
+    is_default = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    parent = db.relationship('AccountHead', remote_side=[id], backref='children')
+
+
+class Supplier(db.Model):
+    __tablename__ = 'suppliers'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+    address = db.Column(db.Text)
+    gstin = db.Column(db.String(20))
+    pan = db.Column(db.String(15))
+    state_name = db.Column(db.String(50))
+    state_code = db.Column(db.String(5))
+    phone = db.Column(db.String(20))
+    email = db.Column(db.String(100))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'address': self.address,
+            'gstin': self.gstin,
+            'pan': self.pan,
+            'state_name': self.state_name,
+            'state_code': self.state_code,
+            'phone': self.phone,
+            'email': self.email,
+        }
+
+
 class CompanySettings(db.Model):
     __tablename__ = 'company_settings'
     id = db.Column(db.Integer, primary_key=True)
@@ -210,6 +253,78 @@ class InvoiceItem(db.Model):
         }
 
 
+class PurchaseVoucher(db.Model):
+    __tablename__ = 'purchase_vouchers'
+    id = db.Column(db.Integer, primary_key=True)
+    voucher_no = db.Column(db.String(50), unique=True, nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'))
+    supplier_name = db.Column(db.String(200))
+    supplier_gstin = db.Column(db.String(20))
+    supplier_address = db.Column(db.Text)
+    voucher_type = db.Column(db.String(30), default='Regular')
+    # voucher_type: 'Regular' (stock items), 'Fixed Asset', 'Expense'
+    account_head_id = db.Column(db.Integer, db.ForeignKey('account_heads.id'), nullable=True)
+    invoice_no = db.Column(db.String(50))
+    payment_mode = db.Column(db.String(20), default='Bank')
+    payment_status = db.Column(db.String(20), default='Unpaid')
+    is_igst = db.Column(db.Boolean, default=False)
+    subtotal = db.Column(db.Float, default=0.0)
+    cgst_total = db.Column(db.Float, default=0.0)
+    sgst_total = db.Column(db.Float, default=0.0)
+    igst_total = db.Column(db.Float, default=0.0)
+    round_off = db.Column(db.Float, default=0.0)
+    grand_total = db.Column(db.Float, default=0.0)
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    supplier = db.relationship('Supplier', backref='purchase_vouchers')
+    account_head = db.relationship('AccountHead', foreign_keys=[account_head_id])
+    items = db.relationship('PurchaseVoucherItem', backref='voucher', lazy=True,
+                            cascade='all, delete-orphan')
+
+
+class PurchaseVoucherItem(db.Model):
+    __tablename__ = 'purchase_voucher_items'
+    id = db.Column(db.Integer, primary_key=True)
+    voucher_id = db.Column(db.Integer, db.ForeignKey('purchase_vouchers.id'), nullable=False)
+    sl_no = db.Column(db.Integer)
+    description = db.Column(db.String(300))
+    hsn_code = db.Column(db.String(20))
+    gst_rate = db.Column(db.Float, default=5.0)
+    quantity = db.Column(db.Float, default=0.0)
+    unit = db.Column(db.String(20), default='Pcs')
+    unit_price = db.Column(db.Float, default=0.0)
+    amount = db.Column(db.Float, default=0.0)
+    cgst_amount = db.Column(db.Float, default=0.0)
+    sgst_amount = db.Column(db.Float, default=0.0)
+    igst_amount = db.Column(db.Float, default=0.0)
+    account_head_id = db.Column(db.Integer, db.ForeignKey('account_heads.id'), nullable=True)
+
+
+class BankTransaction(db.Model):
+    __tablename__ = 'bank_transactions'
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.Date, nullable=False)
+    description = db.Column(db.String(500))
+    reference_no = db.Column(db.String(100))
+    debit = db.Column(db.Float, default=0.0)
+    credit = db.Column(db.Float, default=0.0)
+    balance = db.Column(db.Float, default=0.0)
+    bank_name = db.Column(db.String(100))
+    category = db.Column(db.String(100))
+    account_head_id = db.Column(db.Integer, db.ForeignKey('account_heads.id'), nullable=True)
+    is_reconciled = db.Column(db.Boolean, default=False)
+    linked_invoice_id = db.Column(db.Integer, db.ForeignKey('invoices.id'), nullable=True)
+    linked_purchase_id = db.Column(db.Integer, db.ForeignKey('purchase_vouchers.id'), nullable=True)
+    imported_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    account_head = db.relationship('AccountHead', foreign_keys=[account_head_id])
+    linked_invoice = db.relationship('Invoice', foreign_keys=[linked_invoice_id])
+    linked_purchase = db.relationship('PurchaseVoucher', foreign_keys=[linked_purchase_id])
+
+
 class Expense(db.Model):
     __tablename__ = 'expenses'
     id = db.Column(db.Integer, primary_key=True)
@@ -219,7 +334,10 @@ class Expense(db.Model):
     mode = db.Column(db.String(20), default='Cash')  # Cash/Bank
     bank_name = db.Column(db.String(100))
     category = db.Column(db.String(100))
+    account_head_id = db.Column(db.Integer, db.ForeignKey('account_heads.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    account_head = db.relationship('AccountHead', foreign_keys=[account_head_id])
 
 
 class InvoiceSequence(db.Model):

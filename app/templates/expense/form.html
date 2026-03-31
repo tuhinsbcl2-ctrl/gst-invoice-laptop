@@ -24,6 +24,18 @@
                     <input type="text" name="description" class="form-control"
                            value="{{ expense.description if edit_mode else '' }}">
                 </div>
+                <div class="col-12">
+                    <label class="form-label fw-bold">Account Head</label>
+                    <select name="account_head_id" class="form-select">
+                        <option value="">-- Select Account Head --</option>
+                        {% for ah in account_heads %}
+                        <option value="{{ ah.id }}"
+                            {% if edit_mode and expense.account_head_id == ah.id %}selected{% endif %}>
+                            {{ ah.account_type }} › {{ ah.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
                 <div class="col-md-6">
                     <label class="form-label fw-bold">Mode</label>
                     <select name="mode" class="form-select">

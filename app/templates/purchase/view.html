@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% block title %}Purchase Voucher {{ voucher.voucher_no }}{% endblock %}
+{% block content %}
+<div class="row mb-3 align-items-center">
+    <div class="col">
+        <h4><i class="bi bi-bag me-2"></i>Purchase Voucher: {{ voucher.voucher_no }}</h4>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('purchase.edit_purchase', vid=voucher.id) }}" class="btn btn-outline-secondary btn-sm me-1">
+            <i class="bi bi-pencil me-1"></i>Edit
+        </a>
+        <a href="{{ url_for('purchase.list_purchases') }}" class="btn btn-outline-secondary btn-sm">Back</a>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="small text-muted">Voucher No.</div>
+                <div class="fw-bold">{{ voucher.voucher_no }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="small text-muted">Date</div>
+                <div>{{ voucher.date.strftime('%d-%b-%Y') if voucher.date }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="small text-muted">Type</div>
+                <div><span class="badge bg-secondary">{{ voucher.voucher_type }}</span></div>
+            </div>
+            <div class="col-md-3">
+                <div class="small text-muted">Payment Status</div>
+                <div>
+                    <span class="badge {{ 'bg-success' if voucher.payment_status == 'Paid' else 'bg-warning text-dark' if voucher.payment_status == 'Partial' else 'bg-danger' }}">
+                        {{ voucher.payment_status }}
+                    </span>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="small text-muted">Supplier</div>
+                <div class="fw-bold">{{ voucher.supplier_name or '–' }}</div>
+                <div class="small text-muted">{{ voucher.supplier_address or '' }}</div>
+                {% if voucher.supplier_gstin %}
+                <div class="small">GSTIN: {{ voucher.supplier_gstin }}</div>
+                {% endif %}
+            </div>
+            <div class="col-md-3">
+                <div class="small text-muted">Supplier Invoice No.</div>
+                <div>{{ voucher.invoice_no or '–' }}</div>
+            </div>
+            <div class="col-md-3">
+                <div class="small text-muted">Payment Mode</div>
+                <div>{{ voucher.payment_mode }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if voucher.items %}
+<div class="card mb-3">
+    <div class="card-header fw-bold py-2">Items</div>
+    <div class="card-body p-0">
+        <table class="table table-sm table-bordered mb-0">
+            <thead class="table-secondary">
+                <tr>
+                    <th>#</th>
+                    <th>Description</th>
+                    <th>HSN</th>
+                    <th class="text-end">GST%</th>
+                    <th class="text-end">Qty</th>
+                    <th>Unit</th>
+                    <th class="text-end">Rate</th>
+                    <th class="text-end">Amount</th>
+                    {% if not voucher.is_igst %}
+                    <th class="text-end">CGST</th>
+                    <th class="text-end">SGST</th>
+                    {% else %}
+                    <th class="text-end">IGST</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in voucher.items %}
+                <tr>
+                    <td>{{ item.sl_no }}</td>
+                    <td>{{ item.description }}</td>
+                    <td>{{ item.hsn_code or '' }}</td>
+                    <td class="text-end">{{ item.gst_rate }}%</td>
+                    <td class="text-end">{{ item.quantity }}</td>
+                    <td>{{ item.unit }}</td>
+                    <td class="text-end">₹{{ "{:,.2f}".format(item.unit_price) }}</td>
+                    <td class="text-end">₹{{ "{:,.2f}".format(item.amount) }}</td>
+                    {% if not voucher.is_igst %}
+                    <td class="text-end">₹{{ "{:,.2f}".format(item.cgst_amount) }}</td>
+                    <td class="text-end">₹{{ "{:,.2f}".format(item.sgst_amount) }}</td>
+                    {% else %}
+                    <td class="text-end">₹{{ "{:,.2f}".format(item.igst_amount) }}</td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<div class="row justify-content-end">
+    <div class="col-md-4">
+        <table class="table table-sm table-bordered">
+            <tr><td>Subtotal</td><td class="text-end">₹{{ "{:,.2f}".format(voucher.subtotal) }}</td></tr>
+            {% if not voucher.is_igst %}
+            <tr><td>CGST</td><td class="text-end">₹{{ "{:,.2f}".format(voucher.cgst_total) }}</td></tr>
+            <tr><td>SGST</td><td class="text-end">₹{{ "{:,.2f}".format(voucher.sgst_total) }}</td></tr>
+            {% else %}
+            <tr><td>IGST</td><td class="text-end">₹{{ "{:,.2f}".format(voucher.igst_total) }}</td></tr>
+            {% endif %}
+            {% if voucher.round_off %}
+            <tr><td>Round Off</td><td class="text-end">₹{{ "{:,.2f}".format(voucher.round_off) }}</td></tr>
+            {% endif %}
+            <tr class="table-primary">
+                <td><strong>Grand Total</strong></td>
+                <td class="text-end fw-bold">₹{{ "{:,.2f}".format(voucher.grand_total) }}</td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+{% if voucher.notes %}
+<div class="card">
+    <div class="card-body">
+        <strong>Notes:</strong> {{ voucher.notes }}
+    </div>
+</div>
+{% endif %}
+{% endblock %}
