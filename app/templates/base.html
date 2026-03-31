@@ -65,6 +65,21 @@
                         <li><a class="dropdown-item" href="{{ url_for('reports.dashboard') }}"><i class="bi bi-speedometer2 me-1"></i>Dashboard</a></li>
                         <li><a class="dropdown-item" href="{{ url_for('reports.profit_loss') }}"><i class="bi bi-graph-up me-1"></i>Profit &amp; Loss</a></li>
                         <li><a class="dropdown-item" href="{{ url_for('reports.balance_sheet') }}"><i class="bi bi-table me-1"></i>Balance Sheet</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('reports.gstr1') }}"><i class="bi bi-file-earmark-text me-1"></i>GSTR-1</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('reports.gstr2b') }}"><i class="bi bi-arrow-left-right me-1"></i>GSTR-2B Reco</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('reports.restore') }}"><i class="bi bi-cloud-upload me-1"></i>Backup / Restore</a></li>
+                    </ul>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle {% if request.endpoint and request.endpoint.startswith('returns') %}active{% endif %}"
+                       href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-arrow-return-left me-1"></i>Returns
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{{ url_for('returns.list_purchase_returns') }}"><i class="bi bi-arrow-return-left me-1"></i>Purchase Returns</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('returns.list_sales_returns') }}"><i class="bi bi-arrow-return-right me-1"></i>Sales Returns</a></li>
                     </ul>
                 </li>
                 <li class="nav-item">

@@ -4,6 +4,19 @@ SQLAlchemy models for the GST Billing Application.
 from datetime import datetime
 from app import db
 
+# ---------------------------------------------------------------------------
+# Helper: compute current stock for a product from the InventoryLedger
+# ---------------------------------------------------------------------------
+
+def get_product_stock(product_id):
+    """Return the net available stock for a product (sum of qty_in - qty_out)."""
+    from sqlalchemy import func
+    result = db.session.query(
+        func.coalesce(func.sum(InventoryLedger.qty_in), 0).label('total_in'),
+        func.coalesce(func.sum(InventoryLedger.qty_out), 0).label('total_out'),
+    ).filter(InventoryLedger.product_id == product_id).one()
+    return float(result.total_in) - float(result.total_out)
+
 
 class AccountHead(db.Model):
     __tablename__ = 'account_heads'
@@ -64,6 +77,8 @@ class CompanySettings(db.Model):
     bank_branch = db.Column(db.String(100))
     invoice_prefix = db.Column(db.String(10), default='NE')
     logo_path = db.Column(db.String(200))
+    # Google Drive backup folder (local path inside GDrive sync folder)
+    gdrive_backup_folder = db.Column(db.String(500))
 
 
 class Customer(db.Model):
@@ -150,6 +165,14 @@ class Invoice(db.Model):
     place_of_supply = db.Column(db.String(50))
     place_of_supply_code = db.Column(db.String(5))
     is_igst = db.Column(db.Boolean, default=False)
+    # Ship-to details (when different from bill-to)
+    ship_to_same = db.Column(db.Boolean, default=True)
+    ship_to_name = db.Column(db.String(200))
+    ship_to_address = db.Column(db.Text)
+    ship_to_state = db.Column(db.String(50))
+    ship_to_gstin = db.Column(db.String(20))
+    # e-Way bill / Way Bill number
+    way_bill_no = db.Column(db.String(50))
     subtotal = db.Column(db.Float, default=0.0)
     cgst_total = db.Column(db.Float, default=0.0)
     sgst_total = db.Column(db.Float, default=0.0)
@@ -290,6 +313,7 @@ class PurchaseVoucherItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     voucher_id = db.Column(db.Integer, db.ForeignKey('purchase_vouchers.id'), nullable=False)
     sl_no = db.Column(db.Integer)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=True)
     description = db.Column(db.String(300))
     hsn_code = db.Column(db.String(20))
     gst_rate = db.Column(db.Float, default=5.0)
@@ -348,3 +372,121 @@ class InvoiceSequence(db.Model):
     last_serial = db.Column(db.Integer, default=0)
 
     __table_args__ = (db.UniqueConstraint('prefix', 'financial_year'),)
+
+
+# ---------------------------------------------------------------------------
+# Inventory Ledger – records each stock movement
+# ---------------------------------------------------------------------------
+
+class InventoryLedger(db.Model):
+    __tablename__ = 'inventory_ledger'
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.Date, nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    qty_in = db.Column(db.Float, default=0.0)
+    qty_out = db.Column(db.Float, default=0.0)
+    # source_type: 'purchase' | 'sale' | 'purchase_return' | 'sales_return' | 'adjustment'
+    source_type = db.Column(db.String(30), nullable=False)
+    source_id = db.Column(db.Integer, nullable=True)
+    notes = db.Column(db.String(200))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    product = db.relationship('Product', backref='ledger_entries')
+
+
+# ---------------------------------------------------------------------------
+# Purchase Return
+# ---------------------------------------------------------------------------
+
+class PurchaseReturn(db.Model):
+    __tablename__ = 'purchase_returns'
+    id = db.Column(db.Integer, primary_key=True)
+    return_no = db.Column(db.String(50), unique=True, nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    original_voucher_id = db.Column(db.Integer, db.ForeignKey('purchase_vouchers.id'), nullable=True)
+    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=True)
+    supplier_name = db.Column(db.String(200))
+    supplier_gstin = db.Column(db.String(20))
+    reason = db.Column(db.String(300))
+    is_igst = db.Column(db.Boolean, default=False)
+    subtotal = db.Column(db.Float, default=0.0)
+    cgst_total = db.Column(db.Float, default=0.0)
+    sgst_total = db.Column(db.Float, default=0.0)
+    igst_total = db.Column(db.Float, default=0.0)
+    grand_total = db.Column(db.Float, default=0.0)
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    original_voucher = db.relationship('PurchaseVoucher', foreign_keys=[original_voucher_id])
+    supplier = db.relationship('Supplier', foreign_keys=[supplier_id])
+    items = db.relationship('PurchaseReturnItem', backref='purchase_return', lazy=True,
+                            cascade='all, delete-orphan')
+
+
+class PurchaseReturnItem(db.Model):
+    __tablename__ = 'purchase_return_items'
+    id = db.Column(db.Integer, primary_key=True)
+    return_id = db.Column(db.Integer, db.ForeignKey('purchase_returns.id'), nullable=False)
+    sl_no = db.Column(db.Integer)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=True)
+    description = db.Column(db.String(300))
+    hsn_code = db.Column(db.String(20))
+    gst_rate = db.Column(db.Float, default=5.0)
+    quantity = db.Column(db.Float, default=0.0)
+    unit = db.Column(db.String(20), default='Pcs')
+    unit_price = db.Column(db.Float, default=0.0)
+    amount = db.Column(db.Float, default=0.0)
+    cgst_amount = db.Column(db.Float, default=0.0)
+    sgst_amount = db.Column(db.Float, default=0.0)
+    igst_amount = db.Column(db.Float, default=0.0)
+
+    product = db.relationship('Product', foreign_keys=[product_id])
+
+
+# ---------------------------------------------------------------------------
+# Sales Return
+# ---------------------------------------------------------------------------
+
+class SalesReturn(db.Model):
+    __tablename__ = 'sales_returns'
+    id = db.Column(db.Integer, primary_key=True)
+    return_no = db.Column(db.String(50), unique=True, nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    original_invoice_id = db.Column(db.Integer, db.ForeignKey('invoices.id'), nullable=True)
+    customer_id = db.Column(db.Integer, db.ForeignKey('customers.id'), nullable=True)
+    customer_name = db.Column(db.String(200))
+    customer_gstin = db.Column(db.String(20))
+    reason = db.Column(db.String(300))
+    is_igst = db.Column(db.Boolean, default=False)
+    subtotal = db.Column(db.Float, default=0.0)
+    cgst_total = db.Column(db.Float, default=0.0)
+    sgst_total = db.Column(db.Float, default=0.0)
+    igst_total = db.Column(db.Float, default=0.0)
+    grand_total = db.Column(db.Float, default=0.0)
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    original_invoice = db.relationship('Invoice', foreign_keys=[original_invoice_id])
+    customer = db.relationship('Customer', foreign_keys=[customer_id])
+    items = db.relationship('SalesReturnItem', backref='sales_return', lazy=True,
+                            cascade='all, delete-orphan')
+
+
+class SalesReturnItem(db.Model):
+    __tablename__ = 'sales_return_items'
+    id = db.Column(db.Integer, primary_key=True)
+    return_id = db.Column(db.Integer, db.ForeignKey('sales_returns.id'), nullable=False)
+    sl_no = db.Column(db.Integer)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=True)
+    description = db.Column(db.String(300))
+    hsn_code = db.Column(db.String(20))
+    gst_rate = db.Column(db.Float, default=5.0)
+    quantity = db.Column(db.Float, default=0.0)
+    unit = db.Column(db.String(20), default='Pcs')
+    unit_price = db.Column(db.Float, default=0.0)
+    amount = db.Column(db.Float, default=0.0)
+    cgst_amount = db.Column(db.Float, default=0.0)
+    sgst_amount = db.Column(db.Float, default=0.0)
+    igst_amount = db.Column(db.Float, default=0.0)
+
+    product = db.relationship('Product', foreign_keys=[product_id])

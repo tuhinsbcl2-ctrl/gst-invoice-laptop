@@ -104,12 +104,13 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=False,       # Disable UPX — avoids antivirus false positives and slow startup
-    console=True,    # Keep console visible so the user can see server status
+    console=False,   # No CMD window — double-click to run silently
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon=None,       # Set to 'app/static/img/icon.ico' if you have an icon
 )
 
 coll = COLLECT(

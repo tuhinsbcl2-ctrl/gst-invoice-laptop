@@ -80,6 +80,23 @@
                 </div>
             </div>
 
+            <h6 class="fw-bold text-primary border-bottom pb-1 mb-3 mt-4">
+                <i class="bi bi-cloud me-1"></i>Google Drive Backup
+            </h6>
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="form-label fw-bold">Google Drive Backup Folder (Local Path)</label>
+                    <input type="text" name="gdrive_backup_folder" class="form-control"
+                           value="{{ settings.gdrive_backup_folder if settings else '' }}"
+                           placeholder="e.g. C:\Users\You\Google Drive\GST Backups">
+                    <div class="form-text">
+                        Enter the full local path to a folder inside your Google Drive sync folder.
+                        When you create a backup, it will also be copied here automatically.
+                        Leave blank to skip Google Drive copy.
+                    </div>
+                </div>
+            </div>
+
             <div class="mt-4 text-end">
                 <button type="submit" class="btn btn-primary">
                     <i class="bi bi-save me-1"></i>Save Settings

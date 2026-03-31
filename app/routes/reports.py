@@ -86,7 +86,6 @@ def export_tally():
 def backup():
     """Create a timestamped backup ZIP of the data folder."""
     backups_dir = current_app.config['BACKUPS_DIR']
-    data_dir = current_app.config['BASE_DIR']
     db_path = current_app.config['DATABASE_PATH']
     ts = datetime.now().strftime('%Y%m%d_%H%M%S')
     zip_name = f'backup_{ts}.zip'
@@ -94,7 +93,19 @@ def backup():
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
         if os.path.exists(db_path):
             zf.write(db_path, 'gst_billing.db')
-    flash(f'Backup created: {zip_name}', 'success')
+
+    # Copy to Google Drive folder if configured
+    from app.models import CompanySettings
+    settings = CompanySettings.query.first()
+    gdrive_folder = settings.gdrive_backup_folder if settings else None
+    if gdrive_folder and os.path.isdir(gdrive_folder):
+        try:
+            shutil.copy2(zip_path, os.path.join(gdrive_folder, zip_name))
+            flash(f'Backup created: {zip_name} (also copied to Google Drive folder)', 'success')
+        except Exception as e:
+            flash(f'Backup created: {zip_name} (GDrive copy failed: {e})', 'warning')
+    else:
+        flash(f'Backup created: {zip_name}', 'success')
     return send_file(zip_path, as_attachment=True, download_name=zip_name)
 
 
@@ -279,3 +290,210 @@ def balance_sheet():
                            gst_payable=gst_payable,
                            net_profit_ytd=net_profit_ytd,
                            total_liabilities=total_liabilities)
+
+
+# ---------------------------------------------------------------------------
+# Shared helper
+# ---------------------------------------------------------------------------
+
+def _current_fy_dates():
+    """Return (fy_start, fy_end) for the current Indian financial year."""
+    today = date.today()
+    if today.month >= 4:
+        fy_start = date(today.year, 4, 1)
+        fy_end = date(today.year + 1, 3, 31)
+    else:
+        fy_start = date(today.year - 1, 4, 1)
+        fy_end = date(today.year, 3, 31)
+    return fy_start, fy_end
+
+
+# ---------------------------------------------------------------------------
+# GSTR-1 Report
+# ---------------------------------------------------------------------------
+
+@reports_bp.route('/gstr1')
+def gstr1():
+    """GSTR-1: Monthly sales summary for GST filing."""
+    today = date.today()
+    # Default to current month
+    month_str = request.args.get('month', today.strftime('%Y-%m'))
+    date_from_str = request.args.get('date_from', '')
+    date_to_str = request.args.get('date_to', '')
+
+    try:
+        if date_from_str and date_to_str:
+            date_from = datetime.strptime(date_from_str, '%Y-%m-%d').date()
+            date_to = datetime.strptime(date_to_str, '%Y-%m-%d').date()
+        else:
+            parts = month_str.split('-')
+            year, month = int(parts[0]), int(parts[1])
+            from calendar import monthrange
+            _, last_day = monthrange(year, month)
+            date_from = date(year, month, 1)
+            date_to = date(year, month, last_day)
+    except (ValueError, IndexError):
+        date_from = date(today.year, today.month, 1)
+        date_to = today
+
+    invoices = Invoice.query.filter(
+        Invoice.date >= date_from,
+        Invoice.date <= date_to
+    ).order_by(Invoice.date).all()
+
+    # Classify B2B (has GSTIN) vs B2C
+    b2b_invoices = [i for i in invoices if i.buyer_gstin]
+    b2c_invoices = [i for i in invoices if not i.buyer_gstin]
+
+    def _sum(inv_list):
+        return {
+            'taxable': sum(i.subtotal for i in inv_list),
+            'cgst': sum(i.cgst_total for i in inv_list),
+            'sgst': sum(i.sgst_total for i in inv_list),
+            'igst': sum(i.igst_total for i in inv_list),
+            'total': sum(i.grand_total for i in inv_list),
+        }
+
+    b2b_totals = _sum(b2b_invoices)
+    b2c_totals = _sum(b2c_invoices)
+    all_totals = _sum(invoices)
+
+    # Export to CSV
+    if request.args.get('export') == 'csv':
+        import csv
+        from io import StringIO, BytesIO
+        si = StringIO()
+        writer = csv.writer(si)
+        writer.writerow([
+            'Invoice No', 'Date', 'Buyer Name', 'Buyer GSTIN',
+            'Taxable', 'CGST', 'SGST', 'IGST', 'Grand Total', 'Type'
+        ])
+        for inv in invoices:
+            writer.writerow([
+                inv.invoice_no,
+                inv.date.strftime('%d-%m-%Y'),
+                inv.buyer_name,
+                inv.buyer_gstin or '',
+                f'{inv.subtotal:.2f}',
+                f'{inv.cgst_total:.2f}',
+                f'{inv.sgst_total:.2f}',
+                f'{inv.igst_total:.2f}',
+                f'{inv.grand_total:.2f}',
+                'B2B' if inv.buyer_gstin else 'B2C',
+            ])
+        output = BytesIO(si.getvalue().encode('utf-8-sig'))
+        return send_file(output, mimetype='text/csv', as_attachment=True,
+                         download_name=f'GSTR1_{date_from}_{date_to}.csv')
+
+    return render_template('reports/gstr1.html',
+                           date_from=date_from, date_to=date_to,
+                           month_str=month_str,
+                           invoices=invoices,
+                           b2b_invoices=b2b_invoices,
+                           b2c_invoices=b2c_invoices,
+                           b2b_totals=b2b_totals,
+                           b2c_totals=b2c_totals,
+                           all_totals=all_totals)
+
+
+# ---------------------------------------------------------------------------
+# GSTR-2B Reconciliation
+# ---------------------------------------------------------------------------
+
+@reports_bp.route('/gstr2b', methods=['GET', 'POST'])
+def gstr2b():
+    """GSTR-2B: Upload JSON and reconcile against purchase vouchers."""
+    from app.models import PurchaseVoucher, Supplier
+
+    reconciled = []
+    unmatched_portal = []
+    unmatched_local = []
+    error_msg = None
+    portal_records = []
+
+    if request.method == 'POST':
+        f = request.files.get('gstr2b_file')
+        if not f or not f.filename.lower().endswith('.json'):
+            flash('Please upload a valid GSTR-2B JSON file.', 'danger')
+            return redirect(url_for('reports.gstr2b'))
+
+        import json as json_mod
+        try:
+            raw = f.read().decode('utf-8')
+            data = json_mod.loads(raw)
+        except Exception as e:
+            error_msg = f'Could not parse JSON: {e}'
+            return render_template('reports/gstr2b.html',
+                                   reconciled=[], unmatched_portal=[],
+                                   unmatched_local=[], error_msg=error_msg)
+
+        # Extract invoice records from GSTR-2B JSON
+        # Standard GSTR-2B structure: data.docdata.b2b[].inv[]
+        portal_records = _extract_gstr2b_records(data)
+
+        # Load purchase vouchers from DB (current FY)
+        fy_start, fy_end = _current_fy_dates()
+        pvs = PurchaseVoucher.query.filter(
+            PurchaseVoucher.date >= fy_start,
+            PurchaseVoucher.date <= fy_end,
+        ).all()
+
+        # Build lookup: (gstin.upper(), inv_no.upper()) → PV
+        pv_lookup = {}
+        for pv in pvs:
+            key = (
+                (pv.supplier_gstin or '').strip().upper(),
+                (pv.invoice_no or '').strip().upper(),
+            )
+            if key[0] or key[1]:
+                pv_lookup[key] = pv
+
+        matched_pv_ids = set()
+
+        for rec in portal_records:
+            gstin = rec.get('gstin', '').strip().upper()
+            inv_no = rec.get('inum', '').strip().upper()
+            key = (gstin, inv_no)
+            pv = pv_lookup.get(key)
+            if pv:
+                matched_pv_ids.add(pv.id)
+                # Check amount mismatch (tolerance ₹1)
+                portal_val = float(rec.get('val', 0) or 0)
+                local_val = pv.grand_total
+                mismatch = abs(portal_val - local_val) > 1.0
+                reconciled.append({
+                    'portal': rec,
+                    'local': pv,
+                    'mismatch': mismatch,
+                })
+            else:
+                unmatched_portal.append(rec)
+
+        for pv in pvs:
+            if pv.id not in matched_pv_ids and pv.supplier_gstin:
+                unmatched_local.append(pv)
+
+    return render_template('reports/gstr2b.html',
+                           reconciled=reconciled,
+                           unmatched_portal=unmatched_portal,
+                           unmatched_local=unmatched_local,
+                           error_msg=error_msg)
+
+
+def _extract_gstr2b_records(data):
+    """Extract a flat list of invoice dicts from GSTR-2B JSON structure."""
+    records = []
+    try:
+        # Try standard GSTN structure: data.docdata.b2b[].inv[]
+        doc_data = data.get('data', data)
+        b2b_list = (doc_data.get('docdata', {}).get('b2b', [])
+                    or doc_data.get('b2b', [])
+                    or [])
+        for supplier in b2b_list:
+            gstin = supplier.get('ctin', '') or supplier.get('gstin', '')
+            for inv in supplier.get('inv', []):
+                inv['gstin'] = gstin
+                records.append(inv)
+    except Exception:
+        pass
+    return records

@@ -30,6 +30,7 @@ def index():
         settings.bank_ifsc = data.get('bank_ifsc', '')
         settings.bank_branch = data.get('bank_branch', '')
         settings.invoice_prefix = data.get('invoice_prefix', 'NE')
+        settings.gdrive_backup_folder = data.get('gdrive_backup_folder', '').strip()
         db.session.commit()
         flash('Settings saved successfully.', 'success')
         return redirect(url_for('settings.index'))
