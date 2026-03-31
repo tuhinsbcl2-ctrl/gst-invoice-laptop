@@ -9,7 +9,7 @@ app = create_app()
 
 if __name__ == '__main__':
     print("=" * 60)
-    print("  NIBRITY ENTERPRISE - GST Billing Application")
+    print("  NIBRITY ENTERPRISE - GST Accounting Application")
     print("=" * 60)
     print(f"  Starting server at http://{Config.HOST}:{Config.PORT}")
     print("  Press Ctrl+C to stop")
