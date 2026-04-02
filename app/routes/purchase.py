@@ -78,7 +78,7 @@ def create_purchase():
         voucher_date_str = data.get('date', date.today().strftime('%Y-%m-%d'))
         voucher_date = datetime.strptime(voucher_date_str, '%Y-%m-%d').date()
 
-        voucher_no = get_next_invoice_number('PV')
+        voucher_no = get_next_invoice_number('PV', voucher_date)
 
         supplier_id = data.get('supplier_id') or None
         if supplier_id:
@@ -150,6 +150,13 @@ def create_purchase():
     products = Product.query.order_by(Product.name).all()
     company = CompanySettings.query.first()
     company_state_code = company.state_code if company else ''
+    # Pre-fill from GSTR-2B "Add to Books" link
+    prefill = {
+        'invoice_no': request.args.get('inv_no', ''),
+        'supplier_gstin': request.args.get('supplier_gstin', ''),
+        'supplier_name': request.args.get('supplier_name', ''),
+        'date': request.args.get('inv_date', ''),
+    }
     return render_template('purchase/form.html',
                            today=date.today().strftime('%Y-%m-%d'),
                            next_no=next_no,
@@ -161,7 +168,8 @@ def create_purchase():
                            payment_statuses=PAYMENT_STATUSES,
                            gst_rates=GST_RATES,
                            units=UNITS,
-                           company_state_code=company_state_code)
+                           company_state_code=company_state_code,
+                           prefill=prefill)
 
 
 @purchase_bp.route('/<int:vid>/edit', methods=['GET', 'POST'])

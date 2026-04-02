@@ -13,29 +13,47 @@
 </div>
 
 <!-- Filters -->
+{% set _use_date_range = request.args.get('date_from') and request.args.get('date_to') %}
 <div class="card mb-3 no-print">
     <div class="card-body py-2">
-        <form class="row g-2 align-items-end" method="GET">
+        <form class="row g-2 align-items-end" method="GET" id="gstr1FilterForm">
             <div class="col-auto">
                 <label class="form-label small mb-1">Month</label>
-                <input type="month" name="month" class="form-control form-control-sm"
-                       value="{{ month_str }}">
+                <input type="month" name="month" id="monthInput" class="form-control form-control-sm"
+                       value="{{ '' if _use_date_range else month_str }}">
             </div>
             <div class="col-auto"><small class="text-muted">OR custom range:</small></div>
             <div class="col-auto">
                 <label class="form-label small mb-1">From</label>
-                <input type="date" name="date_from" class="form-control form-control-sm"
-                       value="{{ date_from.strftime('%Y-%m-%d') }}">
+                <input type="date" name="date_from" id="dateFromInput" class="form-control form-control-sm"
+                       value="{{ date_from.strftime('%Y-%m-%d') if _use_date_range else '' }}">
             </div>
             <div class="col-auto">
                 <label class="form-label small mb-1">To</label>
-                <input type="date" name="date_to" class="form-control form-control-sm"
-                       value="{{ date_to.strftime('%Y-%m-%d') }}">
+                <input type="date" name="date_to" id="dateToInput" class="form-control form-control-sm"
+                       value="{{ date_to.strftime('%Y-%m-%d') if _use_date_range else '' }}">
             </div>
             <div class="col-auto"><button type="submit" class="btn btn-primary btn-sm">Apply</button></div>
         </form>
     </div>
 </div>
+<script>
+(function() {
+    var monthInput = document.getElementById('monthInput');
+    var dateFromInput = document.getElementById('dateFromInput');
+    var dateToInput = document.getElementById('dateToInput');
+    monthInput.addEventListener('change', function() {
+        dateFromInput.value = '';
+        dateToInput.value = '';
+    });
+    dateFromInput.addEventListener('change', function() {
+        if (this.value) monthInput.value = '';
+    });
+    dateToInput.addEventListener('change', function() {
+        if (this.value) monthInput.value = '';
+    });
+})();
+</script>
 
 <div class="alert alert-info small py-2">
     Period: <strong>{{ date_from.strftime('%d %b %Y') }}</strong> to <strong>{{ date_to.strftime('%d %b %Y') }}</strong>
@@ -182,6 +200,75 @@
         </table>
     </div>
 </div>
+
+<!-- HSN-wise Summary -->
+{% if hsn_list %}
+<h6 class="fw-bold text-dark mt-4">HSN-wise Summary</h6>
+<div class="table-responsive">
+    <table class="table table-sm table-bordered table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>#</th><th>HSN Code</th><th class="text-end">GST Rate</th>
+                <th class="text-end">Quantity</th><th class="text-end">Taxable Value</th>
+                <th class="text-end">CGST</th><th class="text-end">SGST</th>
+                <th class="text-end">IGST</th><th class="text-end">Total Tax</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in hsn_list %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ row.hsn_code or '—' }}</td>
+                <td class="text-end">{{ row.gst_rate }}%</td>
+                <td class="text-end">{{ "{:,.3f}".format(row.quantity) }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(row.taxable_value) }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(row.cgst) }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(row.sgst) }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(row.igst) }}</td>
+                <td class="text-end fw-bold">{{ "{:,.2f}".format(row.total_tax) }}</td>
+            </tr>
+            {% endfor %}
+            <tr class="table-secondary fw-bold">
+                <td colspan="4" class="text-end">Total</td>
+                <td class="text-end">{{ "{:,.2f}".format(hsn_list|sum(attribute='taxable_value')) }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(hsn_list|sum(attribute='cgst')) }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(hsn_list|sum(attribute='sgst')) }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(hsn_list|sum(attribute='igst')) }}</td>
+                <td class="text-end">{{ "{:,.2f}".format(hsn_list|sum(attribute='total_tax')) }}</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<!-- Document Summary -->
+{% if doc_summary %}
+<h6 class="fw-bold text-dark mt-4">Document Summary</h6>
+<div class="table-responsive">
+    <table class="table table-sm table-bordered table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>#</th><th>Nature of Document</th><th>Sr. No. From</th><th>Sr. No. To</th>
+                <th class="text-end">Total Issued</th><th class="text-end">Cancelled</th>
+                <th class="text-end">Net Issued</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for doc in doc_summary %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ doc.description }}</td>
+                <td>{{ doc.from_no }}</td>
+                <td>{{ doc.to_no }}</td>
+                <td class="text-end">{{ doc.total }}</td>
+                <td class="text-end">{{ doc.cancelled }}</td>
+                <td class="text-end fw-bold">{{ doc.net_issued }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
 
 <style>
 @media print { .no-print { display:none!important; } .navbar, footer, .alert-info { display:none!important; } }

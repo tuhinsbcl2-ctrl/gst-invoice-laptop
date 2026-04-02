@@ -108,7 +108,7 @@
                 <td>{{ rec.inum }}</td>
                 <td>{{ rec.get('dt','') }}</td>
                 <td class="text-end">{{ "{:,.2f}".format(rec.val|float) if rec.val else '—' }}</td>
-                <td><a href="{{ url_for('purchase.create_purchase') }}" class="btn btn-xs btn-outline-primary btn-sm">Add to Books</a></td>
+                <td><a href="{{ url_for('purchase.create_purchase', inv_no=rec.inum, supplier_gstin=rec.gstin, inv_date=rec.get('dt',''), supplier_name=rec.get('trdnm','')) }}" class="btn btn-xs btn-outline-primary btn-sm">Add to Books</a></td>
             </tr>
             {% endfor %}
         </tbody>
