@@ -308,6 +308,14 @@ def _current_fy_dates():
     return fy_start, fy_end
 
 
+def _is_b2c(gstin):
+    """Return True if the GSTIN indicates an unregistered (B2C) buyer."""
+    if not gstin:
+        return True
+    g = gstin.strip().upper()
+    return g in ('', 'URP', 'UNREGISTERED', 'NA', 'N/A')
+
+
 # ---------------------------------------------------------------------------
 # GSTR-1 Report
 # ---------------------------------------------------------------------------
@@ -341,9 +349,10 @@ def gstr1():
         Invoice.date <= date_to
     ).order_by(Invoice.date).all()
 
-    # Classify B2B (has GSTIN) vs B2C
-    b2b_invoices = [i for i in invoices if i.buyer_gstin]
-    b2c_invoices = [i for i in invoices if not i.buyer_gstin]
+    # Classify B2B (has valid GSTIN) vs B2C
+    # "URP" / "UNREGISTERED" / "NA" in the GSTIN field means unregistered → B2C
+    b2b_invoices = [i for i in invoices if not _is_b2c(i.buyer_gstin)]
+    b2c_invoices = [i for i in invoices if _is_b2c(i.buyer_gstin)]
 
     def _sum(inv_list):
         return {
@@ -357,6 +366,40 @@ def gstr1():
     b2b_totals = _sum(b2b_invoices)
     b2c_totals = _sum(b2c_invoices)
     all_totals = _sum(invoices)
+
+    # HSN-wise summary from all invoice items
+    hsn_summary = {}
+    for inv in invoices:
+        for item in inv.items:
+            hsn = item.hsn_code or ''
+            rate = item.gst_rate or 0
+            key = (hsn, rate)
+            if key not in hsn_summary:
+                hsn_summary[key] = {
+                    'hsn_code': hsn, 'gst_rate': rate,
+                    'taxable_value': 0, 'cgst': 0, 'sgst': 0, 'igst': 0,
+                    'total_tax': 0, 'quantity': 0,
+                }
+            hsn_summary[key]['taxable_value'] += item.amount or 0
+            hsn_summary[key]['cgst'] += item.cgst_amount or 0
+            hsn_summary[key]['sgst'] += item.sgst_amount or 0
+            hsn_summary[key]['igst'] += item.igst_amount or 0
+            hsn_summary[key]['quantity'] += item.quantity or 0
+    for entry in hsn_summary.values():
+        entry['total_tax'] = entry['cgst'] + entry['sgst'] + entry['igst']
+    hsn_list = sorted(hsn_summary.values(), key=lambda x: x['hsn_code'])
+
+    # Document summary
+    doc_summary = []
+    if invoices:
+        doc_summary.append({
+            'description': 'Invoices for outward supply',
+            'from_no': invoices[0].invoice_no,
+            'to_no': invoices[-1].invoice_no,
+            'total': len(invoices),
+            'cancelled': 0,
+            'net_issued': len(invoices),
+        })
 
     # Export to CSV
     if request.args.get('export') == 'csv':
@@ -379,7 +422,7 @@ def gstr1():
                 f'{inv.sgst_total:.2f}',
                 f'{inv.igst_total:.2f}',
                 f'{inv.grand_total:.2f}',
-                'B2B' if inv.buyer_gstin else 'B2C',
+                'B2C' if _is_b2c(inv.buyer_gstin) else 'B2B',
             ])
         output = BytesIO(si.getvalue().encode('utf-8-sig'))
         return send_file(output, mimetype='text/csv', as_attachment=True,
@@ -393,7 +436,9 @@ def gstr1():
                            b2c_invoices=b2c_invoices,
                            b2b_totals=b2b_totals,
                            b2c_totals=b2c_totals,
-                           all_totals=all_totals)
+                           all_totals=all_totals,
+                           hsn_list=hsn_list,
+                           doc_summary=doc_summary)
 
 
 # ---------------------------------------------------------------------------
@@ -497,3 +542,91 @@ def _extract_gstr2b_records(data):
     except Exception:
         pass
     return records
+
+
+# ---------------------------------------------------------------------------
+# GSTR-3B Report
+# ---------------------------------------------------------------------------
+
+@reports_bp.route('/gstr3b')
+def gstr3b():
+    """GSTR-3B: Monthly summary return for GST filing."""
+    today = date.today()
+    month_str = request.args.get('month', today.strftime('%Y-%m'))
+    date_from_str = request.args.get('date_from', '')
+    date_to_str = request.args.get('date_to', '')
+
+    try:
+        if date_from_str and date_to_str:
+            date_from = datetime.strptime(date_from_str, '%Y-%m-%d').date()
+            date_to = datetime.strptime(date_to_str, '%Y-%m-%d').date()
+        else:
+            parts = month_str.split('-')
+            year, month = int(parts[0]), int(parts[1])
+            from calendar import monthrange
+            _, last_day = monthrange(year, month)
+            date_from = date(year, month, 1)
+            date_to = date(year, month, last_day)
+    except (ValueError, IndexError):
+        date_from = date(today.year, today.month, 1)
+        date_to = today
+
+    # Sales invoices for the period
+    sales = Invoice.query.filter(
+        Invoice.date >= date_from,
+        Invoice.date <= date_to
+    ).all()
+
+    # Purchase vouchers for the period
+    purchases = PurchaseVoucher.query.filter(
+        PurchaseVoucher.date >= date_from,
+        PurchaseVoucher.date <= date_to
+    ).all()
+
+    # ---- 3.1 Outward Supplies ----
+    # (a) Taxable outward supplies (other than nil/exempt)
+    outward_taxable_value = sum(i.subtotal for i in sales)
+    outward_igst = sum(i.igst_total for i in sales)
+    outward_cgst = sum(i.cgst_total for i in sales)
+    outward_sgst = sum(i.sgst_total for i in sales)
+    outward_total = sum(i.grand_total for i in sales)
+
+    # ---- 3.2 Inter-state supplies to unregistered persons ----
+    interstate_unreg_sales = [
+        i for i in sales
+        if i.is_igst and _is_b2c(i.buyer_gstin)
+    ]
+    interstate_unreg_value = sum(i.subtotal for i in interstate_unreg_sales)
+    interstate_unreg_igst = sum(i.igst_total for i in interstate_unreg_sales)
+
+    # ---- 4. Eligible ITC ----
+    itc_igst = sum(p.igst_total for p in purchases)
+    itc_cgst = sum(p.cgst_total for p in purchases)
+    itc_sgst = sum(p.sgst_total for p in purchases)
+    itc_total = itc_igst + itc_cgst + itc_sgst
+
+    # ---- 6.1 Tax payable ----
+    tax_payable_igst = max(0, outward_igst - itc_igst)
+    tax_payable_cgst = max(0, outward_cgst - itc_cgst)
+    tax_payable_sgst = max(0, outward_sgst - itc_sgst)
+    tax_payable_total = tax_payable_igst + tax_payable_cgst + tax_payable_sgst
+
+    return render_template('reports/gstr3b.html',
+                           date_from=date_from, date_to=date_to,
+                           month_str=month_str,
+                           sales=sales, purchases=purchases,
+                           outward_taxable_value=outward_taxable_value,
+                           outward_igst=outward_igst,
+                           outward_cgst=outward_cgst,
+                           outward_sgst=outward_sgst,
+                           outward_total=outward_total,
+                           interstate_unreg_value=interstate_unreg_value,
+                           interstate_unreg_igst=interstate_unreg_igst,
+                           itc_igst=itc_igst,
+                           itc_cgst=itc_cgst,
+                           itc_sgst=itc_sgst,
+                           itc_total=itc_total,
+                           tax_payable_igst=tax_payable_igst,
+                           tax_payable_cgst=tax_payable_cgst,
+                           tax_payable_sgst=tax_payable_sgst,
+                           tax_payable_total=tax_payable_total)

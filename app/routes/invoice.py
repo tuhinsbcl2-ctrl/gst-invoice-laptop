@@ -374,7 +374,14 @@ def export_csv():
 def api_next_number():
     settings = CompanySettings.query.first()
     prefix = settings.invoice_prefix if settings else 'NE'
-    return jsonify({'next': peek_next_invoice_number(prefix)})
+    date_str = request.args.get('date', '')
+    ref_date = None
+    if date_str:
+        try:
+            ref_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    return jsonify({'next': peek_next_invoice_number(prefix, ref_date)})
 
 
 @invoice_bp.route('/api/customer/<int:cid>')

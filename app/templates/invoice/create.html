@@ -25,12 +25,12 @@
                 <div class="row g-2">
                     <div class="col-md-3">
                         <label class="form-label small fw-bold">Invoice No</label>
-                        <input type="text" class="form-control form-control-sm bg-warning-subtle"
+                        <input type="text" id="invoiceNoDisplay" class="form-control form-control-sm bg-warning-subtle"
                                value="{{ invoice.invoice_no if edit_mode else next_invoice_no }}" readonly>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label small fw-bold">Date <span class="text-danger">*</span></label>
-                        <input type="date" name="date" class="form-control form-control-sm input-editable" required
+                        <input type="date" name="date" id="invoiceDateInput" class="form-control form-control-sm input-editable" required
                                value="{{ invoice.date.strftime('%Y-%m-%d') if edit_mode and invoice.date else today }}">
                     </div>
                     <div class="col-md-3">
@@ -671,6 +671,23 @@ window.addEventListener('DOMContentLoaded', function() {
     {% endif %}
     updateGstType();
     recalcTotals();
+
+    // Update invoice number preview when date changes (only in create mode)
+    {% if not edit_mode %}
+    var dateInput = document.getElementById('invoiceDateInput');
+    var invoiceNoDisplay = document.getElementById('invoiceNoDisplay');
+    if (dateInput && invoiceNoDisplay) {
+        dateInput.addEventListener('change', function() {
+            var d = this.value;
+            if (!d) return;
+            fetch('/invoice/api/next_number?date=' + d)
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.next) invoiceNoDisplay.value = data.next;
+                });
+        });
+    }
+    {% endif %}
 });
 </script>
 {% endblock %}

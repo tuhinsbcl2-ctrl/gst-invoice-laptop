@@ -38,6 +38,7 @@ SMOKE_URLS = [
     '/reports/balance-sheet',
     '/reports/gstr1',
     '/reports/gstr2b',
+    '/reports/gstr3b',
     '/bank/',
     '/settings/',
 ]

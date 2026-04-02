@@ -20,7 +20,7 @@
     <div class="col-md-4">
         <label class="form-label fw-bold">Date *</label>
         <input type="date" name="date" class="form-control" required
-               value="{{ voucher.date.strftime('%Y-%m-%d') if edit_mode and voucher.date else today }}">
+               value="{{ voucher.date.strftime('%Y-%m-%d') if edit_mode and voucher.date else (prefill.date if prefill is defined and prefill.date else today) }}">
     </div>
     <div class="col-md-4">
         <label class="form-label fw-bold">Voucher Type</label>
@@ -58,12 +58,12 @@
                 <div class="col-md-4">
                     <label class="form-label small">Supplier Name</label>
                     <input type="text" name="supplier_name" id="supplierName" class="form-control form-control-sm"
-                           value="{{ voucher.supplier_name if edit_mode else '' }}">
+                           value="{{ voucher.supplier_name if edit_mode else (prefill.supplier_name if prefill is defined else '') }}">
                 </div>
                 <div class="col-md-4">
                     <label class="form-label small">Supplier GSTIN</label>
                     <input type="text" name="supplier_gstin" id="supplierGstin" class="form-control form-control-sm"
-                           value="{{ voucher.supplier_gstin if edit_mode else '' }}">
+                           value="{{ voucher.supplier_gstin if edit_mode else (prefill.supplier_gstin if prefill is defined else '') }}">
                 </div>
                 <div class="col-12">
                     <label class="form-label small">Supplier Address</label>
@@ -78,7 +78,7 @@
     <div class="col-md-3">
         <label class="form-label fw-bold">Supplier Invoice No.</label>
         <input type="text" name="invoice_no" class="form-control"
-               value="{{ voucher.invoice_no if edit_mode else '' }}">
+               value="{{ voucher.invoice_no if edit_mode else (prefill.invoice_no if prefill is defined else '') }}">
     </div>
     <div class="col-md-3">
         <label class="form-label fw-bold">Payment Mode</label>
