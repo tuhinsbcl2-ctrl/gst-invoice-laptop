@@ -42,7 +42,7 @@
                 {% for qt in quotations %}
                 <tr>
                     <td><a href="{{ url_for('quotation.view_quotation', quotation_id=qt.id) }}" class="fw-bold">{{ qt.quotation_no }}</a></td>
-                    <td>{{ qt.date.strftime('%d-%b-%y') if qt.date }}</td>
+                    <td>{{ qt.date.strftime('%d-%b-%Y') if qt.date }}</td>
                     <td>{{ qt.customer_name }}</td>
                     <td>{{ qt.subject or '–' }}</td>
                     <td class="text-end fw-bold">₹{{ "{:,.2f}".format(qt.grand_total) }}</td>

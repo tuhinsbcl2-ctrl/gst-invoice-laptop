@@ -44,7 +44,7 @@
             <div class="col-md-6">
                 <table class="table table-sm table-borderless mb-0">
                     <tr><td class="fw-bold" style="width:40%">Quotation No:</td><td>{{ quotation.quotation_no }}</td></tr>
-                    <tr><td class="fw-bold">Date:</td><td>{{ quotation.date.strftime('%d-%b-%y') if quotation.date }}</td></tr>
+                    <tr><td class="fw-bold">Date:</td><td>{{ quotation.date.strftime('%d-%b-%Y') if quotation.date }}</td></tr>
                     <tr><td class="fw-bold">Valid for:</td><td>{{ quotation.validity_days }} days</td></tr>
                     <tr><td class="fw-bold">Status:</td>
                         <td>
