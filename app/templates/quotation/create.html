@@ -140,9 +140,6 @@
                                     <td>
                                         <select class="form-select form-select-sm product-select">
                                             <option value="">--</option>
-                                            {% for p in products %}
-                                            <option value="{{ p.id }}" data-name="{{ p.name }}" data-hsn="{{ p.hsn_code }}" data-rate="{{ p.default_unit_price }}" data-gst="{{ p.default_gst_rate }}" data-unit="{{ p.unit }}">{{ p.name }}</option>
-                                            {% endfor %}
                                         </select>
                                     </td>
                                     <td class="text-center"><button type="button" class="btn btn-xs btn-outline-danger btn-sm remove-row py-0 px-1"><i class="bi bi-trash"></i></button></td>
@@ -161,9 +158,6 @@
                                     <td>
                                         <select class="form-select form-select-sm product-select">
                                             <option value="">--</option>
-                                            {% for p in products %}
-                                            <option value="{{ p.id }}" data-name="{{ p.name }}" data-hsn="{{ p.hsn_code }}" data-rate="{{ p.default_unit_price }}" data-gst="{{ p.default_gst_rate }}" data-unit="{{ p.unit }}">{{ p.name }}</option>
-                                            {% endfor %}
                                         </select>
                                     </td>
                                     <td class="text-center"><button type="button" class="btn btn-xs btn-outline-danger btn-sm remove-row py-0 px-1"><i class="bi bi-trash"></i></button></td>
@@ -225,8 +219,21 @@
 
 {% block scripts %}
 <script>
-// Product row template
-const productOptions = `{% for p in products %}<option value="{{ p.id }}" data-name="{{ p.name }}" data-hsn="{{ p.hsn_code }}" data-rate="{{ p.default_unit_price }}" data-gst="{{ p.default_gst_rate }}" data-unit="{{ p.unit }}">{{ p.name }}</option>{% endfor %}`;
+// Product data injected safely as JSON to avoid XSS from special characters in names/attributes
+const PRODUCTS = {{ products | map(attribute='to_dict') | list | tojson }};
+
+function buildProductOptions() {
+    return PRODUCTS.map(function(p) {
+        return '<option value="' + p.id + '" '
+            + 'data-name="' + p.name.replace(/&/g,'&amp;').replace(/"/g,'&quot;') + '" '
+            + 'data-hsn="' + (p.hsn_code || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;') + '" '
+            + 'data-rate="' + p.default_unit_price + '" '
+            + 'data-gst="' + p.default_gst_rate + '" '
+            + 'data-unit="' + (p.unit || 'Pcs').replace(/&/g,'&amp;').replace(/"/g,'&quot;') + '">'
+            + p.name.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            + '</option>';
+    }).join('');
+}
 
 function newRowHtml(idx) {
     return `<tr class="item-row">
@@ -238,7 +245,7 @@ function newRowHtml(idx) {
         <td><input type="number" name="unit_price[]" class="form-control form-control-sm item-rate" value="0" step="0.01" min="0"></td>
         <td><input type="number" name="gst_rate[]" class="form-control form-control-sm item-gst" value="18" step="0.5" min="0"></td>
         <td><input type="text" class="form-control form-control-sm item-amount bg-light" value="0.00" readonly></td>
-        <td><select class="form-select form-select-sm product-select"><option value="">--</option>${productOptions}</select></td>
+        <td><select class="form-select form-select-sm product-select"><option value="">--</option>${buildProductOptions()}</select></td>
         <td class="text-center"><button type="button" class="btn btn-xs btn-outline-danger btn-sm remove-row py-0 px-1"><i class="bi bi-trash"></i></button></td>
     </tr>`;
 }
@@ -320,7 +327,17 @@ function renumberRows() {
     });
 }
 
+// Populate product selects on page load (for static rows in create/edit mode)
+function populateAllProductSelects() {
+    document.querySelectorAll('.product-select').forEach(function(sel) {
+        if (sel.children.length <= 1) {
+            sel.insertAdjacentHTML('beforeend', buildProductOptions());
+        }
+    });
+}
+
 // Initial calc
+populateAllProductSelects();
 recalc();
 </script>
 {% endblock %}

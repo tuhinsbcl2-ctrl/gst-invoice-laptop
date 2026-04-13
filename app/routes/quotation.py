@@ -13,21 +13,36 @@ quotation_bp = Blueprint('quotation', __name__)
 
 
 def _get_next_quotation_number():
-    """Generate the next quotation number in QT/NNN/YY-YY format."""
+    """Generate the next quotation number in QT/NNN/YY-YY format using a DB sequence."""
+    from app import db
+    from app.models import InvoiceSequence
     from app.services.invoice_numbering import get_financial_year
+
+    prefix = 'QT'
     fy = get_financial_year()
-    count = Quotation.query.count()
-    serial = str(count + 1).zfill(3)
-    return f"QT/{serial}/{fy}"
+    seq = InvoiceSequence.query.filter_by(prefix=prefix, financial_year=fy).first()
+    if not seq:
+        seq = InvoiceSequence(prefix=prefix, financial_year=fy, last_serial=0)
+        db.session.add(seq)
+
+    seq.last_serial += 1
+    db.session.commit()
+
+    serial_str = str(seq.last_serial).zfill(3)
+    return f"{prefix}/{serial_str}/{fy}"
 
 
 def _peek_next_quotation_number():
     """Preview the next quotation number without incrementing."""
+    from app.models import InvoiceSequence
     from app.services.invoice_numbering import get_financial_year
+
+    prefix = 'QT'
     fy = get_financial_year()
-    count = Quotation.query.count()
-    serial = str(count + 1).zfill(3)
-    return f"QT/{serial}/{fy}"
+    seq = InvoiceSequence.query.filter_by(prefix=prefix, financial_year=fy).first()
+    next_serial = (seq.last_serial + 1) if seq else 1
+    serial_str = str(next_serial).zfill(3)
+    return f"{prefix}/{serial_str}/{fy}"
 
 
 def _collect_items_from_form(data):
