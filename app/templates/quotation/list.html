@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}Quotations{% endblock %}
+{% block content %}
+<div class="row mb-3 align-items-center">
+    <div class="col">
+        <h4><i class="bi bi-file-earmark-text me-2"></i>Quotations</h4>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('quotation.create_quotation') }}" class="btn btn-success">
+            <i class="bi bi-plus-circle me-1"></i>New Quotation
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<form class="row g-2 mb-3" method="get">
+    <div class="col-md-5">
+        <input type="text" class="form-control form-control-sm" name="q" value="{{ q }}"
+               placeholder="Search quotation no or customer name…">
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+        <a href="{{ url_for('quotation.list_quotations') }}" class="btn btn-outline-secondary btn-sm">Clear</a>
+    </div>
+</form>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover table-sm mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>Quotation No</th>
+                    <th>Date</th>
+                    <th>Customer</th>
+                    <th>Subject</th>
+                    <th class="text-end">Grand Total</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for qt in quotations %}
+                <tr>
+                    <td><a href="{{ url_for('quotation.view_quotation', quotation_id=qt.id) }}" class="fw-bold">{{ qt.quotation_no }}</a></td>
+                    <td>{{ qt.date.strftime('%d-%b-%y') if qt.date }}</td>
+                    <td>{{ qt.customer_name }}</td>
+                    <td>{{ qt.subject or '–' }}</td>
+                    <td class="text-end fw-bold">₹{{ "{:,.2f}".format(qt.grand_total) }}</td>
+                    <td>
+                        {% if qt.status == 'Accepted' %}
+                            <span class="badge bg-success">Accepted</span>
+                        {% elif qt.status == 'Sent' %}
+                            <span class="badge bg-info text-dark">Sent</span>
+                        {% elif qt.status == 'Rejected' %}
+                            <span class="badge bg-danger">Rejected</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Draft</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('quotation.view_quotation', quotation_id=qt.id) }}" class="btn btn-xs btn-outline-primary btn-sm py-0 px-1" title="View"><i class="bi bi-eye"></i></a>
+                        <a href="{{ url_for('quotation.edit_quotation', quotation_id=qt.id) }}" class="btn btn-xs btn-outline-secondary btn-sm py-0 px-1" title="Edit"><i class="bi bi-pencil"></i></a>
+                        <a href="{{ url_for('quotation.download_pdf', quotation_id=qt.id) }}" class="btn btn-xs btn-outline-danger btn-sm py-0 px-1" title="PDF" target="_blank"><i class="bi bi-file-pdf"></i></a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" class="text-center text-muted py-4">No quotations found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

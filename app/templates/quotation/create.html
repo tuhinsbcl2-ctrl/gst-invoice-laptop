@@ -1,0 +1,326 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Edit' if edit_mode else 'New' }} Quotation – GST Billing{% endblock %}
+{% block content %}
+<div class="row mb-3 align-items-center">
+    <div class="col">
+        <h4><i class="bi bi-file-earmark-text me-2"></i>
+            {% if edit_mode %}Edit Quotation {{ quotation.quotation_no }}{% else %}New Quotation{% endif %}
+        </h4>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('quotation.list_quotations') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Back
+        </a>
+    </div>
+</div>
+
+<form method="POST" id="quotationForm">
+<div class="row g-3">
+
+    <!-- Quotation Details -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white"><i class="bi bi-info-circle me-1"></i>Quotation Details</div>
+            <div class="card-body">
+                <div class="row g-2">
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">Quotation No</label>
+                        <input type="text" class="form-control form-control-sm bg-warning-subtle"
+                               value="{{ quotation.quotation_no if edit_mode else next_quotation_no }}" readonly>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-bold">Date <span class="text-danger">*</span></label>
+                        <input type="date" name="date" class="form-control form-control-sm" required
+                               value="{{ quotation.date.strftime('%Y-%m-%d') if edit_mode and quotation.date else today }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-bold">Validity (days)</label>
+                        <input type="number" name="validity_days" class="form-control form-control-sm"
+                               value="{{ quotation.validity_days if edit_mode else 15 }}" min="1">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">Status</label>
+                        <select name="status" class="form-select form-select-sm">
+                            <option value="Draft" {% if not edit_mode or quotation.status=='Draft' %}selected{% endif %}>Draft</option>
+                            <option value="Sent" {% if edit_mode and quotation.status=='Sent' %}selected{% endif %}>Sent</option>
+                            <option value="Accepted" {% if edit_mode and quotation.status=='Accepted' %}selected{% endif %}>Accepted</option>
+                            <option value="Rejected" {% if edit_mode and quotation.status=='Rejected' %}selected{% endif %}>Rejected</option>
+                        </select>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label small fw-bold">Subject <span class="text-muted small">(auto-filled from items if left blank)</span></label>
+                        <input type="text" name="subject" class="form-control form-control-sm"
+                               placeholder="e.g. Medical Equipments & Supplies"
+                               value="{{ quotation.subject if edit_mode else '' }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Details -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-success text-white"><i class="bi bi-person me-1"></i>Customer Details</div>
+            <div class="card-body">
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <label class="form-label small">Select Existing Customer</label>
+                        <select id="customerSelect" class="form-select form-select-sm">
+                            <option value="">-- Select or type below --</option>
+                            {% for c in customers %}
+                            <option value="{{ c.id }}"
+                                    data-name="{{ c.name }}"
+                                    data-address="{{ c.address }}"
+                                    data-gstin="{{ c.gstin }}"
+                                    {% if edit_mode and quotation.customer_id == c.id %}selected{% endif %}>
+                                {{ c.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <input type="hidden" name="customer_id" id="customerId" value="{{ quotation.customer_id if edit_mode else '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Customer Name <span class="text-danger">*</span></label>
+                        <input type="text" name="customer_name" id="customerName" class="form-control form-control-sm" required
+                               value="{{ quotation.customer_name if edit_mode else '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">GSTIN</label>
+                        <input type="text" name="customer_gstin" id="customerGstin" class="form-control form-control-sm"
+                               value="{{ quotation.customer_gstin if edit_mode else '' }}">
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label small fw-bold">Address</label>
+                        <textarea name="customer_address" id="customerAddress" class="form-control form-control-sm" rows="2">{{ quotation.customer_address if edit_mode else '' }}</textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Items Table -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-list-ul me-1"></i>Items</span>
+                <button type="button" class="btn btn-sm btn-dark" id="addRowBtn">
+                    <i class="bi bi-plus-circle me-1"></i>Add Row
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered mb-0" id="itemsTable">
+                        <thead class="table-secondary">
+                            <tr>
+                                <th style="width:4%">#</th>
+                                <th style="width:28%">Description <span class="text-danger">*</span></th>
+                                <th style="width:10%">HSN/SAC</th>
+                                <th style="width:8%">Qty</th>
+                                <th style="width:8%">Unit</th>
+                                <th style="width:12%">Rate (₹)</th>
+                                <th style="width:8%">GST %</th>
+                                <th style="width:12%">Amount (₹)</th>
+                                <th style="width:10%">Product</th>
+                                <th style="width:4%"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="itemsBody">
+                            {% if edit_mode %}
+                                {% for item in quotation.items %}
+                                <tr class="item-row">
+                                    <td class="text-center row-num">{{ loop.index }}</td>
+                                    <td><input type="text" name="description[]" class="form-control form-control-sm item-desc" value="{{ item.description }}" required></td>
+                                    <td><input type="text" name="hsn_code[]" class="form-control form-control-sm" value="{{ item.hsn_code }}"></td>
+                                    <td><input type="number" name="quantity[]" class="form-control form-control-sm item-qty" value="{{ item.quantity }}" step="0.01" min="0"></td>
+                                    <td><input type="text" name="unit[]" class="form-control form-control-sm" value="{{ item.unit }}"></td>
+                                    <td><input type="number" name="unit_price[]" class="form-control form-control-sm item-rate" value="{{ item.unit_price }}" step="0.01" min="0"></td>
+                                    <td><input type="number" name="gst_rate[]" class="form-control form-control-sm item-gst" value="{{ item.gst_rate }}" step="0.5" min="0"></td>
+                                    <td><input type="text" class="form-control form-control-sm item-amount bg-light" value="{{ '{:,.2f}'.format(item.amount) }}" readonly></td>
+                                    <td>
+                                        <select class="form-select form-select-sm product-select">
+                                            <option value="">--</option>
+                                            {% for p in products %}
+                                            <option value="{{ p.id }}" data-name="{{ p.name }}" data-hsn="{{ p.hsn_code }}" data-rate="{{ p.default_unit_price }}" data-gst="{{ p.default_gst_rate }}" data-unit="{{ p.unit }}">{{ p.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td class="text-center"><button type="button" class="btn btn-xs btn-outline-danger btn-sm remove-row py-0 px-1"><i class="bi bi-trash"></i></button></td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr class="item-row">
+                                    <td class="text-center row-num">1</td>
+                                    <td><input type="text" name="description[]" class="form-control form-control-sm item-desc" required></td>
+                                    <td><input type="text" name="hsn_code[]" class="form-control form-control-sm"></td>
+                                    <td><input type="number" name="quantity[]" class="form-control form-control-sm item-qty" value="1" step="0.01" min="0"></td>
+                                    <td><input type="text" name="unit[]" class="form-control form-control-sm" value="Pcs"></td>
+                                    <td><input type="number" name="unit_price[]" class="form-control form-control-sm item-rate" value="0" step="0.01" min="0"></td>
+                                    <td><input type="number" name="gst_rate[]" class="form-control form-control-sm item-gst" value="18" step="0.5" min="0"></td>
+                                    <td><input type="text" class="form-control form-control-sm item-amount bg-light" value="0.00" readonly></td>
+                                    <td>
+                                        <select class="form-select form-select-sm product-select">
+                                            <option value="">--</option>
+                                            {% for p in products %}
+                                            <option value="{{ p.id }}" data-name="{{ p.name }}" data-hsn="{{ p.hsn_code }}" data-rate="{{ p.default_unit_price }}" data-gst="{{ p.default_gst_rate }}" data-unit="{{ p.unit }}">{{ p.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td class="text-center"><button type="button" class="btn btn-xs btn-outline-danger btn-sm remove-row py-0 px-1"><i class="bi bi-trash"></i></button></td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Totals & Notes -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-secondary text-white"><i class="bi bi-chat-left-text me-1"></i>Notes</div>
+            <div class="card-body">
+                <textarea name="notes" class="form-control form-control-sm" rows="4"
+                          placeholder="Optional internal notes…">{{ quotation.notes if edit_mode else '' }}</textarea>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-dark text-white"><i class="bi bi-calculator me-1"></i>Totals</div>
+            <div class="card-body">
+                <table class="table table-sm table-borderless mb-0">
+                    <tr>
+                        <td>Sub Total (Taxable):</td>
+                        <td class="text-end fw-bold" id="totalSubtotal">₹0.00</td>
+                    </tr>
+                    <tr>
+                        <td>CGST:</td>
+                        <td class="text-end" id="totalCgst">₹0.00</td>
+                    </tr>
+                    <tr>
+                        <td>SGST:</td>
+                        <td class="text-end" id="totalSgst">₹0.00</td>
+                    </tr>
+                    <tr class="table-warning">
+                        <td><strong>Grand Total:</strong></td>
+                        <td class="text-end"><strong id="totalGrand">₹0.00</strong></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 text-end">
+        <a href="{{ url_for('quotation.list_quotations') }}" class="btn btn-outline-secondary me-2">Cancel</a>
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-save me-1"></i>{{ 'Update Quotation' if edit_mode else 'Save Quotation' }}
+        </button>
+    </div>
+
+</div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Product row template
+const productOptions = `{% for p in products %}<option value="{{ p.id }}" data-name="{{ p.name }}" data-hsn="{{ p.hsn_code }}" data-rate="{{ p.default_unit_price }}" data-gst="{{ p.default_gst_rate }}" data-unit="{{ p.unit }}">{{ p.name }}</option>{% endfor %}`;
+
+function newRowHtml(idx) {
+    return `<tr class="item-row">
+        <td class="text-center row-num">${idx}</td>
+        <td><input type="text" name="description[]" class="form-control form-control-sm item-desc" required></td>
+        <td><input type="text" name="hsn_code[]" class="form-control form-control-sm"></td>
+        <td><input type="number" name="quantity[]" class="form-control form-control-sm item-qty" value="1" step="0.01" min="0"></td>
+        <td><input type="text" name="unit[]" class="form-control form-control-sm" value="Pcs"></td>
+        <td><input type="number" name="unit_price[]" class="form-control form-control-sm item-rate" value="0" step="0.01" min="0"></td>
+        <td><input type="number" name="gst_rate[]" class="form-control form-control-sm item-gst" value="18" step="0.5" min="0"></td>
+        <td><input type="text" class="form-control form-control-sm item-amount bg-light" value="0.00" readonly></td>
+        <td><select class="form-select form-select-sm product-select"><option value="">--</option>${productOptions}</select></td>
+        <td class="text-center"><button type="button" class="btn btn-xs btn-outline-danger btn-sm remove-row py-0 px-1"><i class="bi bi-trash"></i></button></td>
+    </tr>`;
+}
+
+document.getElementById('addRowBtn').addEventListener('click', function() {
+    const tbody = document.getElementById('itemsBody');
+    const idx = tbody.querySelectorAll('.item-row').length + 1;
+    tbody.insertAdjacentHTML('beforeend', newRowHtml(idx));
+    recalc();
+});
+
+document.getElementById('itemsBody').addEventListener('click', function(e) {
+    if (e.target.closest('.remove-row')) {
+        const row = e.target.closest('.item-row');
+        row.remove();
+        renumberRows();
+        recalc();
+    }
+});
+
+document.getElementById('itemsBody').addEventListener('change', function(e) {
+    if (e.target.classList.contains('product-select')) {
+        const opt = e.target.selectedOptions[0];
+        if (!opt || !opt.value) return;
+        const row = e.target.closest('.item-row');
+        row.querySelector('.item-desc').value = opt.dataset.name || '';
+        row.querySelector('input[name="hsn_code[]"]').value = opt.dataset.hsn || '';
+        row.querySelector('.item-rate').value = opt.dataset.rate || 0;
+        row.querySelector('.item-gst').value = opt.dataset.gst || 0;
+        row.querySelector('input[name="unit[]"]').value = opt.dataset.unit || 'Pcs';
+        recalc();
+    }
+    if (e.target.classList.contains('item-qty') || e.target.classList.contains('item-rate') || e.target.classList.contains('item-gst')) {
+        recalc();
+    }
+});
+
+document.getElementById('itemsBody').addEventListener('input', function(e) {
+    if (e.target.classList.contains('item-qty') || e.target.classList.contains('item-rate') || e.target.classList.contains('item-gst')) {
+        recalc();
+    }
+});
+
+// Customer select
+document.getElementById('customerSelect').addEventListener('change', function() {
+    const opt = this.selectedOptions[0];
+    if (!opt || !opt.value) return;
+    document.getElementById('customerId').value = opt.value;
+    document.getElementById('customerName').value = opt.dataset.name || '';
+    document.getElementById('customerAddress').value = opt.dataset.address || '';
+    document.getElementById('customerGstin').value = opt.dataset.gstin || '';
+});
+
+function recalc() {
+    const rows = document.querySelectorAll('.item-row');
+    let subtotal = 0, cgst = 0, sgst = 0;
+    rows.forEach(row => {
+        const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+        const rate = parseFloat(row.querySelector('.item-rate').value) || 0;
+        const gstRate = parseFloat(row.querySelector('.item-gst').value) || 0;
+        const amount = qty * rate;
+        const cgstAmt = amount * (gstRate / 2) / 100;
+        const sgstAmt = amount * (gstRate / 2) / 100;
+        row.querySelector('.item-amount').value = amount.toFixed(2);
+        subtotal += amount;
+        cgst += cgstAmt;
+        sgst += sgstAmt;
+    });
+    const grand = subtotal + cgst + sgst;
+    document.getElementById('totalSubtotal').textContent = '₹' + subtotal.toFixed(2);
+    document.getElementById('totalCgst').textContent = '₹' + cgst.toFixed(2);
+    document.getElementById('totalSgst').textContent = '₹' + sgst.toFixed(2);
+    document.getElementById('totalGrand').textContent = '₹' + grand.toFixed(2);
+}
+
+function renumberRows() {
+    document.querySelectorAll('.item-row').forEach(function(row, idx) {
+        row.querySelector('.row-num').textContent = idx + 1;
+    });
+}
+
+// Initial calc
+recalc();
+</script>
+{% endblock %}
