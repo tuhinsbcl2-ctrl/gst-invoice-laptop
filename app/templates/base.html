@@ -29,6 +29,10 @@
                        href="{{ url_for('invoice.list_invoices') }}"><i class="bi bi-receipt me-1"></i>Invoices</a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link {% if request.endpoint and request.endpoint.startswith('quotation') %}active{% endif %}"
+                       href="{{ url_for('quotation.list_quotations') }}"><i class="bi bi-file-earmark-text me-1"></i>Quotations</a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link {% if request.endpoint and request.endpoint.startswith('challan') %}active{% endif %}"
                        href="{{ url_for('challan.list_challans') }}"><i class="bi bi-truck me-1"></i>Challans</a>
                 </li>

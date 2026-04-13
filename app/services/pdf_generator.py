@@ -1,5 +1,5 @@
 """
-PDF generation for Tax Invoice and Delivery Challan using xhtml2pdf (pisa).
+PDF generation for Tax Invoice, Delivery Challan, and Quotation using xhtml2pdf (pisa).
 Renders HTML templates to PDF bytes.  xhtml2pdf is a pure-Python library
 that works on Windows without any native dependencies (no GTK/Cairo needed).
 """
@@ -109,6 +109,24 @@ def generate_combined_pdf(invoice):
         hsn_breakup=hsn_breakup,
         invoice_copies=invoice_copies,
         challan_copies=challan_copies,
+    )
+    if not _HAS_PDF_ENGINE:
+        return html_content.encode('utf-8'), 'html'
+
+    pdf_bytes = _html_to_pdf(html_content)
+    if pdf_bytes is None:
+        return html_content.encode('utf-8'), 'html'
+    return pdf_bytes, 'pdf'
+
+
+def generate_quotation_pdf(quotation):
+    """Generate a single-page professional PDF for a Quotation."""
+    from app.models import CompanySettings
+    settings = CompanySettings.query.first()
+    html_content = render_template(
+        'quotation/pdf_template.html',
+        quotation=quotation,
+        settings=settings,
     )
     if not _HAS_PDF_ENGINE:
         return html_content.encode('utf-8'), 'html'

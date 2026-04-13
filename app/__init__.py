@@ -39,8 +39,10 @@ def create_app(config_class=Config):
     from app.routes.purchase import purchase_bp
     from app.routes.bank import bank_bp
     from app.routes.returns import returns_bp
+    from app.routes.quotation import quotation_bp
 
     app.register_blueprint(main_bp)
+    app.register_blueprint(quotation_bp, url_prefix='/quotation')
     app.register_blueprint(invoice_bp, url_prefix='/invoice')
     app.register_blueprint(challan_bp, url_prefix='/challan')
     app.register_blueprint(customer_bp, url_prefix='/customer')

@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  /* Point 6: Visual Upgrades – clean A4 PDF layout */
+  @page { size: A4; margin: 12mm 12mm; }
+  body {
+    font-family: Arial, sans-serif;
+    font-size: 9pt;
+    color: #222;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    border-bottom: 2px solid #333;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+  }
+  .header h1 {
+    margin: 0 0 2px 0;
+    font-size: 16pt;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .header .doc-type {
+    font-size: 11pt;
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-decoration: underline;
+    margin-bottom: 3px;
+  }
+  .header p {
+    margin: 2px 0;
+    font-size: 8pt;
+  }
+
+  /* Meta / address block */
+  .meta-row {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 10px;
+  }
+  .meta-row td {
+    padding: 4px 6px;
+    vertical-align: top;
+    border: 1px solid #999;
+    font-size: 8.5pt;
+  }
+  .meta-label { font-weight: bold; }
+
+  /* Subject line */
+  .subject-line {
+    text-align: center;
+    font-weight: bold;
+    text-decoration: underline;
+    font-size: 9.5pt;
+    margin: 10px 0 6px 0;
+  }
+
+  /* Point 1: Professional items table */
+  table.items-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 0;
+  }
+  table.items-table th {
+    background-color: #e8e8e8;
+    padding: 5px 4px;
+    text-align: center;
+    font-size: 8pt;
+    border: 1px solid #555;
+  }
+  table.items-table td {
+    padding: 4px;
+    font-size: 8.5pt;
+    border: 1px solid #555;
+    word-wrap: break-word;
+  }
+  .text-right  { text-align: right; }
+  .text-center { text-align: center; }
+  .text-left   { text-align: left; }
+
+  /* Point 2: Tax summary rows */
+  .tfoot-label  { font-weight: bold; }
+  .grand-total-row td { font-weight: bold; font-size: 9.5pt; background-color: #f5f5f5; }
+
+  /* Amount in words */
+  .amount-words {
+    border: 1px solid #555;
+    padding: 4px 6px;
+    margin-top: 4px;
+    font-size: 8pt;
+    font-style: italic;
+  }
+
+  /* Point 3: Terms & Conditions */
+  .terms-box {
+    margin-top: 14px;
+    font-size: 8pt;
+  }
+  .terms-box ol {
+    margin: 4px 0 0 0;
+    padding-left: 18px;
+  }
+  .terms-box li {
+    margin-bottom: 2px;
+  }
+
+  /* Point 5: Authorized Signatory block */
+  .signature-row {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 30px;
+  }
+  .signature-row td {
+    border: none;
+    vertical-align: bottom;
+    font-size: 8.5pt;
+  }
+  .signature-block {
+    text-align: right;
+    font-weight: bold;
+  }
+  .signature-block .sig-line {
+    border-top: 1px solid #333;
+    display: inline-block;
+    width: 180px;
+    margin-top: 30px;
+    text-align: center;
+    font-weight: normal;
+    font-size: 8pt;
+  }
+
+  /* Point 6: Footer with clean separator */
+  .footer {
+    margin-top: 18px;
+    border-top: 1px solid #555;
+    padding-top: 6px;
+    text-align: center;
+    font-size: 7.5pt;
+    color: #555;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Company Header -->
+  <div class="header">
+    <p class="doc-type">QUOTATION</p>
+    <h1>{{ settings.company_name }}</h1>
+    <p>Prop: {% if settings.udyam %}{{ settings.udyam }} &nbsp;|&nbsp;{% endif %}
+       <strong>GSTIN:</strong> {{ settings.gstin }} &nbsp;|&nbsp;
+       <strong>PAN:</strong> {{ settings.pan }}</p>
+    <p>{{ settings.address }}</p>
+  </div>
+
+  <!-- Meta Info: Quotation number / date + Customer address (Point 4 layout) -->
+  <table class="meta-row">
+    <tr>
+      <td style="width:50%">
+        <span class="meta-label">Quotation No:</span> {{ quotation.quotation_no }}<br>
+        <span class="meta-label">Date:</span> {{ quotation.date.strftime('%d-%b-%Y') if quotation.date }}<br>
+        <span class="meta-label">Valid for:</span> {{ quotation.validity_days }} days from date of issue
+      </td>
+      <td style="width:50%">
+        <span class="meta-label">To,</span><br>
+        <strong>{{ quotation.customer_name }}</strong><br>
+        {{ quotation.customer_address }}<br>
+        {% if quotation.customer_gstin %}<span class="meta-label">GSTIN:</span> {{ quotation.customer_gstin }}{% endif %}
+      </td>
+    </tr>
+  </table>
+
+  <!-- Point 4: Dynamic subject line derived from items -->
+  <div class="subject-line">
+    Ref: Quotation for {{ quotation.subject }}
+  </div>
+
+  <p style="font-size:8.5pt; margin:0 0 8px 0;">
+    Dear Sir/Madam,<br>
+    With reference to your inquiry, we are pleased to quote the following items for your consideration:
+  </p>
+
+  <!-- Point 1: Professional Items Table with all required columns -->
+  <table class="items-table">
+    <thead>
+      <tr>
+        <th style="width:5%">Sl No.</th>
+        <th style="width:34%">Description of Goods</th>
+        <th style="width:10%">HSN/SAC</th>
+        <th style="width:9%">Qty</th>
+        <th style="width:13%">Rate (&#8377;)</th>
+        <th style="width:9%">GST %</th>
+        <th style="width:13%">Amount (&#8377;)</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in quotation.items %}
+      <tr>
+        <td class="text-center">{{ item.sl_no }}</td>
+        <td class="text-left">{{ item.description }}</td>
+        <td class="text-center">{{ item.hsn_code }}</td>
+        <td class="text-center">{{ item.quantity|int if item.quantity == item.quantity|int else item.quantity }} {{ item.unit }}</td>
+        <td class="text-right">{{ "{:,.2f}".format(item.unit_price) }}</td>
+        <td class="text-center">{{ item.gst_rate }}%</td>
+        <td class="text-right">{{ "{:,.2f}".format(item.amount) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+
+    <!-- Point 2: Explicit Tax Breakdown in footer rows -->
+    <tfoot>
+      <tr>
+        <td colspan="6" class="text-right tfoot-label">Sub Total (Taxable Value):</td>
+        <td class="text-right">{{ "{:,.2f}".format(quotation.subtotal) }}</td>
+      </tr>
+      <tr>
+        <td colspan="6" class="text-right">CGST:</td>
+        <td class="text-right">{{ "{:,.2f}".format(quotation.cgst_total) }}</td>
+      </tr>
+      <tr>
+        <td colspan="6" class="text-right">SGST:</td>
+        <td class="text-right">{{ "{:,.2f}".format(quotation.sgst_total) }}</td>
+      </tr>
+      <tr class="grand-total-row">
+        <td colspan="6" class="text-right">Grand Total:</td>
+        <td class="text-right">&#8377; {{ "{:,.2f}".format(quotation.grand_total) }}</td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <!-- Amount in words -->
+  <div class="amount-words">
+    <strong>Amount in words:</strong> {{ quotation.amount_in_words }}
+  </div>
+
+  <!-- Point 3: Terms & Conditions -->
+  <div class="terms-box">
+    <strong>Terms &amp; Conditions:</strong>
+    <ol>
+      <li><strong>Validity:</strong> This quotation is valid for {{ quotation.validity_days }} days from the date of issue.</li>
+      <li><strong>Payment:</strong> 100% advance against Proforma Invoice / 30 days credit as applicable.</li>
+      <li><strong>Delivery:</strong> Within 7–10 working days from the date of confirmed Purchase Order.</li>
+      <li><strong>GST:</strong> CGST &amp; SGST as applicable (intra-state). IGST applicable for inter-state supply.</li>
+      <li><strong>Jurisdiction:</strong> All disputes subject to Kolkata jurisdiction.</li>
+    </ol>
+  </div>
+
+  {% if quotation.notes %}
+  <p style="font-size:8pt; margin-top:6px;"><strong>Notes:</strong> {{ quotation.notes }}</p>
+  {% endif %}
+
+  <!-- Point 5: Authorized Signatory block -->
+  <table class="signature-row">
+    <tr>
+      <td style="width:60%; font-size:8.5pt;">
+        Thanking you and hoping for a positive response.
+      </td>
+      <td style="width:40%;" class="signature-block">
+        For <strong>{{ settings.company_name }}</strong>
+        <div class="sig-line">(Authorized Signatory)</div>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Point 6: Footer with horizontal separator -->
+  <div class="footer">
+    {{ settings.address }}<br>
+    {% if settings.bank_name %}
+    Bank: {{ settings.bank_name }}{% if settings.bank_account %} | A/C No.: {{ settings.bank_account }}{% endif %}{% if settings.bank_ifsc %} | IFSC: {{ settings.bank_ifsc }}{% endif %}<br>
+    {% endif %}
+    This is a Computer Generated Quotation &nbsp;|&nbsp; SUBJECT TO KOLKATA JURISDICTION
+  </div>
+
+</body>
+</html>

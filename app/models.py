@@ -490,3 +490,88 @@ class SalesReturnItem(db.Model):
     igst_amount = db.Column(db.Float, default=0.0)
 
     product = db.relationship('Product', foreign_keys=[product_id])
+
+
+# ---------------------------------------------------------------------------
+# Quotation
+# ---------------------------------------------------------------------------
+
+class Quotation(db.Model):
+    __tablename__ = 'quotations'
+    id = db.Column(db.Integer, primary_key=True)
+    quotation_no = db.Column(db.String(50), unique=True, nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    customer_id = db.Column(db.Integer, db.ForeignKey('customers.id'), nullable=True)
+    customer_name = db.Column(db.String(200))
+    customer_address = db.Column(db.Text)
+    customer_gstin = db.Column(db.String(20))
+    subject = db.Column(db.String(300))
+    validity_days = db.Column(db.Integer, default=15)
+    subtotal = db.Column(db.Float, default=0.0)
+    cgst_total = db.Column(db.Float, default=0.0)
+    sgst_total = db.Column(db.Float, default=0.0)
+    grand_total = db.Column(db.Float, default=0.0)
+    amount_in_words = db.Column(db.String(500))
+    notes = db.Column(db.Text)
+    status = db.Column(db.String(20), default='Draft')  # Draft / Sent / Accepted / Rejected
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    customer = db.relationship('Customer', foreign_keys=[customer_id])
+    items = db.relationship('QuotationItem', backref='quotation', lazy=True,
+                            cascade='all, delete-orphan')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'quotation_no': self.quotation_no,
+            'date': self.date.strftime('%d-%b-%y') if self.date else '',
+            'customer_name': self.customer_name,
+            'customer_address': self.customer_address,
+            'customer_gstin': self.customer_gstin,
+            'subject': self.subject,
+            'validity_days': self.validity_days,
+            'subtotal': self.subtotal,
+            'cgst_total': self.cgst_total,
+            'sgst_total': self.sgst_total,
+            'grand_total': self.grand_total,
+            'amount_in_words': self.amount_in_words,
+            'notes': self.notes,
+            'status': self.status,
+            'items': [item.to_dict() for item in self.items],
+        }
+
+
+class QuotationItem(db.Model):
+    __tablename__ = 'quotation_items'
+    id = db.Column(db.Integer, primary_key=True)
+    quotation_id = db.Column(db.Integer, db.ForeignKey('quotations.id'), nullable=False)
+    sl_no = db.Column(db.Integer)
+    description = db.Column(db.String(300))
+    hsn_code = db.Column(db.String(20))
+    gst_rate = db.Column(db.Float, default=5.0)
+    quantity = db.Column(db.Float, default=1.0)
+    unit = db.Column(db.String(20), default='Pcs')
+    unit_price = db.Column(db.Float, default=0.0)
+    amount = db.Column(db.Float, default=0.0)
+    cgst_rate = db.Column(db.Float, default=0.0)
+    cgst_amount = db.Column(db.Float, default=0.0)
+    sgst_rate = db.Column(db.Float, default=0.0)
+    sgst_amount = db.Column(db.Float, default=0.0)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'sl_no': self.sl_no,
+            'description': self.description,
+            'hsn_code': self.hsn_code,
+            'gst_rate': self.gst_rate,
+            'quantity': self.quantity,
+            'unit': self.unit,
+            'unit_price': self.unit_price,
+            'amount': self.amount,
+            'cgst_rate': self.cgst_rate,
+            'cgst_amount': self.cgst_amount,
+            'sgst_rate': self.sgst_rate,
+            'sgst_amount': self.sgst_amount,
+        }
